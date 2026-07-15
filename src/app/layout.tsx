@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-
-import NavBar from "@/components/NavBar";
+import AppLogo from "@/components/AppLogo";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 export const metadata: Metadata = {
@@ -17,19 +16,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* min-h-screen, not h-full: h-full on html/body with no percentage
-          height chain above them collapses to zero (see brief's known bug
-          class), min-h-screen is viewport-relative and can't collapse.
-          Shell is a column on mobile (top bar + content + fixed bottom nav)
-          and a row on md+ (left sidebar + content). */}
-      <body className="app-shell flex flex-col md:flex-row">
-        <NavBar />
-        <div className="flex-1 min-w-0 flex flex-col">
-          <main className="flex-1 w-full max-w-3xl mx-auto px-4 py-6 pb-24 md:pb-10">
-            {children}
-          </main>
+      <body className="antialiased">
+        <div className="app-shell">
+          <div className="app-brand">
+            <AppLogo />
+          </div>
+          {children}
+          <ServiceWorkerRegister />
         </div>
-        <ServiceWorkerRegister />
       </body>
     </html>
   );
