@@ -1,0 +1,16 @@
+{
+  "name": "Grinnish Local",
+  "short_name": "Grinnish",
+  "description": "Offline-first study companion powered by a local Gemma model.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#171717",
+  "icons": [
+    {
+      "src": "/next.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
