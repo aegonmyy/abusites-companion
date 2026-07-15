@@ -31,7 +31,7 @@ export default function NotesPage() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold">Notes</h1>
-          <p className="text-sm text-black/60 dark:text-white/60 mt-1">
+          <p className="text-sm muted mt-1">
             Paste notes or snap a photo of study material — the local model summarizes it,
             pulls out key concepts, and builds a quiz.
           </p>
@@ -39,34 +39,34 @@ export default function NotesPage() {
         <Link
           href="/notes/new"
           data-testid="new-note-button"
-          className="shrink-0 rounded-full bg-black text-white dark:bg-white dark:text-black px-4 py-2 text-sm font-medium"
+          className="btn btn-primary shrink-0"
         >
           New note
         </Link>
       </div>
 
-      {!notes && <p className="text-sm text-black/60 dark:text-white/60">Loading…</p>}
+      {!notes && <p className="text-sm muted">Loading…</p>}
 
       {notes && notes.length === 0 && (
-        <p data-testid="notes-empty" className="text-sm text-black/60 dark:text-white/60">
+        <p data-testid="notes-empty" className="text-sm muted">
           No notes yet. Start with &quot;New note&quot;.
         </p>
       )}
 
-      <ul className="flex flex-col gap-2" data-testid="notes-list">
+      <ul className="flex flex-col gap-3" data-testid="notes-list">
         {notes?.map((n) => (
           <li key={n.id}>
             <Link
               href={`/notes/${n.id}`}
-              className="block border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 hover:bg-black/5 dark:hover:bg-white/5"
+              className="card-link block px-4 py-3.5"
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="font-medium">{n.title}</span>
-                <span className="text-xs text-black/50 dark:text-white/50">
+                <span className="font-semibold">{n.title}</span>
+                <span className="chip-neutral">
                   {SOURCE_LABEL[n.sourceType] ?? n.sourceType}
                 </span>
               </div>
-              <p className="text-sm text-black/60 dark:text-white/60 mt-1 line-clamp-2">{n.summary}</p>
+              <p className="text-sm muted mt-1 line-clamp-2">{n.summary}</p>
             </Link>
           </li>
         ))}

@@ -4,6 +4,7 @@ import { use, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import MathText from "@/components/MathText";
 import MicButton from "@/components/MicButton";
+import SendGlyph from "@/components/SendGlyph";
 import { notesChatSystemPrompt, type Language } from "@/lib/prompts";
 
 type QuizQuestion = {
@@ -140,7 +141,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   }
 
   if (!note) {
-    return <p className="text-sm text-black/60 dark:text-white/60">Loading note…</p>;
+    return <p className="text-sm muted">Loading note…</p>;
   }
 
   return (
@@ -148,13 +149,13 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold">{note.title}</h1>
-          <MathText as="p" className="text-sm text-black/70 dark:text-white/70 mt-1" text={note.summary} />
+          <MathText as="p" className="text-sm muted mt-1" text={note.summary} />
         </div>
-        <div className="flex flex-col items-end gap-1 shrink-0">
-          <button type="button" onClick={bookmark} data-testid="bookmark-note-button" className="text-xs underline">
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <button type="button" onClick={bookmark} data-testid="bookmark-note-button" className="text-xs font-medium" style={{ color: "var(--primary)" }}>
             {bookmarked ? "Bookmarked" : "Bookmark"}
           </button>
-          <button type="button" onClick={remove} data-testid="delete-note-button" className="text-xs underline text-red-600">
+          <button type="button" onClick={remove} data-testid="delete-note-button" className="text-xs font-medium" style={{ color: "var(--bad)" }}>
             Delete
           </button>
         </div>
@@ -163,10 +164,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
       {note.keyConcepts.length > 0 && (
         <div className="flex flex-wrap gap-2" data-testid="note-key-concepts">
           {note.keyConcepts.map((k, i) => (
-            <span
-              key={i}
-              className="text-xs rounded-full bg-black/5 dark:bg-white/10 px-2 py-1"
-            >
+            <span key={i} className="chip">
               {k}
             </span>
           ))}
@@ -174,20 +172,20 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
       )}
 
       {note.quiz.length > 0 && (
-        <div className="border border-black/10 dark:border-white/10 rounded-lg p-3" data-testid="note-quiz">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-medium text-sm">Quiz</span>
+        <div className="card p-5" data-testid="note-quiz">
+          <div className="flex items-center justify-between mb-3">
+            <span className="font-semibold text-sm">Quiz</span>
             {submitted && (
-              <span data-testid="note-quiz-score" className="text-sm font-medium">
+              <span data-testid="note-quiz-score" className="text-sm font-semibold" style={{ color: "var(--primary)" }}>
                 {score} / {note.quiz.length}
               </span>
             )}
           </div>
-          <ol className="flex flex-col gap-3">
+          <ol className="flex flex-col gap-4">
             {note.quiz.map((q, qi) => (
               <li key={qi}>
-                <MathText as="p" className="text-sm font-medium mb-1" text={`${qi + 1}. ${q.question}`} />
-                <div className="flex flex-col gap-1">
+                <MathText as="p" className="text-sm font-medium mb-1.5" text={`${qi + 1}. ${q.question}`} />
+                <div className="flex flex-col gap-1.5">
                   {q.options.map((opt, oi) => (
                     <button
                       key={oi}
@@ -196,16 +194,16 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                       onClick={() => choose(qi, oi)}
                       data-testid={`note-quiz-q${qi}-opt${oi}`}
                       className={
-                        "text-left text-sm rounded-lg border px-3 py-1.5 " +
+                        "option " +
                         (submitted
                           ? oi === q.correct_index
-                            ? "border-green-600 bg-green-50 dark:bg-green-900/30"
+                            ? "option-correct"
                             : answers[qi] === oi
-                              ? "border-red-600 bg-red-50 dark:bg-red-900/30"
-                              : "border-black/10 dark:border-white/10"
+                              ? "option-wrong"
+                              : ""
                           : answers[qi] === oi
-                            ? "border-black dark:border-white"
-                            : "border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5")
+                            ? "option-selected"
+                            : "")
                       }
                     >
                       {opt}
@@ -220,7 +218,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
               type="button"
               onClick={() => setSubmitted(true)}
               data-testid="note-quiz-submit"
-              className="mt-3 rounded-full bg-black text-white dark:bg-white dark:text-black px-4 py-1.5 text-sm font-medium"
+              className="btn btn-primary mt-4"
             >
               Submit
             </button>
@@ -228,18 +226,13 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
         </div>
       )}
 
-      <div className="border border-black/10 dark:border-white/10 rounded-lg p-3 flex flex-col gap-3 min-h-[16rem]">
-        <span className="font-medium text-sm">Ask about this note</span>
+      <div className="card p-4 flex flex-col gap-3 min-h-[18rem]">
+        <span className="font-semibold text-sm">Ask about this note</span>
         <div className="flex-1 flex flex-col gap-2 overflow-y-auto" data-testid="note-chat-log">
           {chat.map((m, i) => (
             <div
               key={i}
-              className={
-                "text-sm rounded-lg px-3 py-2 max-w-[90%] " +
-                (m.role === "user"
-                  ? "self-end bg-black text-white dark:bg-white dark:text-black"
-                  : "self-start bg-black/5 dark:bg-white/10")
-              }
+              className={"bubble " + (m.role === "user" ? "bubble-user" : "bubble-assistant")}
             >
               <MathText text={m.content} />
             </div>
@@ -251,22 +244,23 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
             e.preventDefault();
             send();
           }}
-          className="flex gap-2"
+          className="flex gap-2 items-center"
         >
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask a follow-up…"
             data-testid="note-chat-input"
-            className="flex-1 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 bg-transparent text-sm"
+            className="field flex-1"
           />
           <button
             type="submit"
             disabled={streaming}
             data-testid="note-chat-send-button"
-            className="rounded-lg bg-black text-white dark:bg-white dark:text-black px-3 py-2 text-sm disabled:opacity-50"
+            className="btn-icon btn-icon-primary"
+            aria-label="Send"
           >
-            Send
+            <SendGlyph />
           </button>
           <MicButton disabled={streaming} onRecorded={sendAudio} />
         </form>
