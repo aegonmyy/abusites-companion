@@ -171,14 +171,34 @@ export default function SyllabusPage({
             <>
               <div className="flex items-center justify-between">
                 <span className="font-medium">{activeSubunit.title}</span>
-                <button
-                  type="button"
-                  onClick={markComplete}
-                  data-testid="mark-complete-button"
-                  className="text-xs underline"
-                >
-                  {completedSet.has(activeSubunit.subunit_id) ? "Completed" : "Mark complete"}
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      fetch("/api/bookmarks", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          kind: "subunit",
+                          refId: `${syllabus.id}:${activeSubunit.subunit_id}`,
+                          label: `${syllabus.topic} — ${activeSubunit.title}`,
+                        }),
+                      })
+                    }
+                    data-testid="bookmark-subunit-button"
+                    className="text-xs underline"
+                  >
+                    Bookmark
+                  </button>
+                  <button
+                    type="button"
+                    onClick={markComplete}
+                    data-testid="mark-complete-button"
+                    className="text-xs underline"
+                  >
+                    {completedSet.has(activeSubunit.subunit_id) ? "Completed" : "Mark complete"}
+                  </button>
+                </div>
               </div>
 
               <div className="flex-1 flex flex-col gap-2 overflow-y-auto" data-testid="chat-log">

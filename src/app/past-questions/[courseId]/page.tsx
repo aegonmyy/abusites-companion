@@ -81,8 +81,28 @@ export default function CourseDetailPage({
       <ol className="flex flex-col gap-4">
         {course.pastQuestions.map((q, i) => (
           <li key={q.id} className="border border-black/10 dark:border-white/10 rounded-lg p-3">
-            <div className="text-xs text-black/50 dark:text-white/50 mb-1">
-              {i + 1}. {q.year ?? "Year unknown"}
+            <div className="flex items-center justify-between text-xs text-black/50 dark:text-white/50 mb-1">
+              <span>
+                {i + 1}. {q.year ?? "Year unknown"}
+              </span>
+              <button
+                type="button"
+                data-testid={`bookmark-question-${q.id}`}
+                onClick={() =>
+                  fetch("/api/bookmarks", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      kind: "past_question",
+                      refId: q.id,
+                      label: `${course.code} — ${q.title}`,
+                    }),
+                  })
+                }
+                className="underline"
+              >
+                Bookmark
+              </button>
             </div>
             <MathText as="p" className="mb-2" text={q.questionText ?? q.title} />
             <ul className="flex flex-col gap-1 text-sm">
