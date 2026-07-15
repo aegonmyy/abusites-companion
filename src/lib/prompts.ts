@@ -39,9 +39,9 @@ export function syllabusGenerationSystemPrompt(language: Language): string {
   return [
     BASE,
     languageLine(language),
-    "Given a study topic, goal, and available minutes, produce a compact syllabus as strict JSON only — no markdown fences, no prose outside the JSON.",
-    'Shape: {"units":[{"unit_id":1,"title":"...","subunits":[{"subunit_id":"1.1","title":"...","key_concepts":["..."],"prerequisites":["..."]}]}]}',
-    "Keep it small: 2-4 units, 2-3 subunits each. This is for a short study session, not a full course.",
+    "Given a study topic, goal, and available minutes, produce a compact syllabus as strict JSON only — no markdown fences, no prose outside the JSON, no fields beyond what's shown.",
+    'Shape: {"units":[{"unit_id":1,"title":"...","subunits":[{"subunit_id":"1.1","title":"...","key_concepts":["...","..."]}]}]}',
+    "Hard limit, must fit a short output budget: exactly 2-3 units, exactly 2 subunits per unit, exactly 2 short key_concepts per subunit (a few words each, not sentences). This is for a short study session, not a full course — terser is better than complete.",
   ].join("\n");
 }
 
