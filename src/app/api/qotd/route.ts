@@ -12,9 +12,10 @@ function todayStr(): string {
  * local user, no auth — one QOTD row per calendar day.
  *
  * Gracefully returns { date, question: null } when the seeded catalog has
- * no past_questions available — see the Phase 1 seeding report: the live
- * Supabase project's past_questions table returned zero rows to the anon
- * key, so this is the expected state until that's resolved.
+ * no past_questions available — see the Phase 1 seeding report: the
+ * upstream source project's past_questions table returned zero rows to the
+ * read-only key used by the setup-time seed script, so this is the
+ * expected state until that's resolved.
  */
 export async function GET() {
   const date = todayStr();

@@ -13,7 +13,7 @@ const SCENARIOS = [
 /**
  * Ported from the reference repo's StudyIntakeForm.tsx UX (topic / goal /
  * minutes / scenario), rewritten to call the local intake + syllabus
- * generation routes instead of Supabase + Gemini.
+ * generation routes instead of the reference repo's cloud backend/model.
  */
 export default function StudyIntakePage() {
   const router = useRouter();

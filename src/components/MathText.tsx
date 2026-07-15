@@ -2,7 +2,7 @@
 
 // Ported from the reference repo's src/components/MathText.tsx, unchanged
 // in behavior: renders inline/block LaTeX delimiters inside plain text via
-// KaTeX's auto-render. Pure client-side JS, no Supabase/auth dependency —
+// KaTeX's auto-render. Pure client-side JS, no backend/auth dependency —
 // safe to reuse as-is per the brief ("markdown stack ... is pure JS and
 // Windows-safe: reuse it").
 import { useEffect, useRef } from "react";

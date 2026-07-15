@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * Lists seeded courses with their past_question counts, so the browser can
- * show which courses actually have content (currently: none — the live
- * Supabase project's past_questions table returned zero rows to the anon
- * key; see the Phase 1 seed report).
+ * show which courses actually have content (currently: none — the
+ * upstream source project's past_questions table returned zero rows to
+ * the read-only key used by the setup-time seed script; see the Phase 1
+ * seed report).
  */
 export async function GET() {
   const courses = await prisma.course.findMany({
