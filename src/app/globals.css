@@ -1,26 +1,352 @@
 @import "tailwindcss";
 
+/* Commit to the light "Writing Study" visual language regardless of the OS
+   color-scheme preference. The codebase carries many legacy `dark:` utility
+   variants; re-scoping the dark variant to an explicit `.dark` ancestor (which
+   is never applied) makes those inert instead of flipping the whole app on a
+   dark-mode device. One coherent light theme, matching the reference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+
+  /* --- Design tokens (screenshot-estimated, not source-exact) --- */
+  /* Surfaces */
+  --page: #eef0f5;          /* faint-lavender page background */
+  --card: #ffffff;          /* pure white cards */
+  --card-muted: #f6f7fb;    /* subtle inset panels */
+  --border: #e5e7f0;        /* hairline card border */
+  --border-strong: #d6d9e6;
+
+  /* Brand — indigo/blue primary accent */
+  --primary: #4f5bd5;
+  --primary-hover: #4450c2;
+  --primary-soft: #eef0ff;  /* tinted indigo wash */
+  --primary-ring: rgba(79, 91, 213, 0.35);
+
+  /* Text */
+  --text: #1e2233;          /* near-black slate */
+  --text-muted: #6b7180;    /* secondary copy */
+  --text-faint: #9aa0b0;
+
+  /* Feedback */
+  --good: #12855a;
+  --good-soft: #e6f6ee;
+  --bad: #d23b3b;
+  --bad-soft: #fdeaea;
+
+  /* Shape + depth */
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 10px;
+  --shadow: 0 4px 20px rgba(30, 34, 60, 0.06);
+  --shadow-md: 0 8px 28px rgba(30, 34, 60, 0.12);
+  --shadow-sm: 0 1px 3px rgba(30, 34, 60, 0.06);
+
+  --background: var(--page);
+  --foreground: var(--text);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--page);
+  --color-foreground: var(--text);
+  --color-primary: var(--primary);
+  --color-border-token: var(--border);
+  --font-sans: var(--font-sans-stack);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* System sans stack — no build-time or runtime network font fetch, so the
+   app stays fully offline-installable. */
+:root {
+  --font-sans-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--page);
+  color: var(--text);
+  font-family: var(--font-sans-stack);
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  /* ---------- Cards ---------- */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+  }
+  .card-link {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+  }
+  .card-link:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+  }
+  .panel {
+    background: var(--card-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    line-height: 1;
+    border-radius: 999px;
+    padding: 0.7rem 1.25rem;
+    min-height: 44px;
+    cursor: pointer;
+    transition: background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  }
+  .btn:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(79, 91, 213, 0.30);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+  }
+  .btn-block {
+    display: flex;
+    width: 100%;
+  }
+  .btn-secondary {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  /* Compact square-ish action button (chat send / mic) */
+  .btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  }
+  .btn-icon-primary {
+    background: var(--primary);
+    color: #fff;
+    border: 1px solid var(--primary);
+  }
+  .btn-icon-primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+  }
+  .btn-icon-ghost {
+    background: var(--card);
+    color: var(--text-muted);
+    border: 1px solid var(--border-strong);
+  }
+  .btn-icon-ghost:hover:not(:disabled) {
+    color: var(--primary);
+    border-color: var(--primary);
+  }
+  .btn-icon:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  /* ---------- Form fields ---------- */
+  .field {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 0.65rem 0.85rem;
+    font-size: 0.9rem;
+    color: var(--text);
+    min-height: 44px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .field::placeholder {
+    color: var(--text-faint);
+  }
+  .field:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-ring);
+  }
+
+  /* ---------- Pills / tabs / chips ---------- */
+  .tab {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0.5rem 0.95rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: 1px solid var(--border-strong);
+    background: var(--card);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .tab:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .tab-active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .tab-active:hover {
+    color: #fff;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.72rem;
+    font-weight: 500;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+  .chip-neutral {
+    background: var(--card-muted);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  /* ---------- Chat bubbles ---------- */
+  .bubble {
+    max-width: 85%;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    padding: 0.6rem 0.85rem;
+    border-radius: 16px;
+    word-break: break-word;
+  }
+  .bubble-user {
+    align-self: flex-end;
+    background: var(--primary);
+    color: #fff;
+    border-bottom-right-radius: 6px;
+  }
+  .bubble-assistant {
+    align-self: flex-start;
+    background: var(--card-muted);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 6px;
+  }
+
+  /* ---------- Option buttons (quiz / CBT / QOTD) ---------- */
+  .option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--card);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 0.6rem 0.85rem;
+    font-size: 0.875rem;
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .option:hover:not(:disabled) {
+    border-color: var(--primary);
+  }
+  .option-selected {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+  }
+  .option-correct {
+    border-color: var(--good);
+    background: var(--good-soft);
+    color: var(--good);
+  }
+  .option-wrong {
+    border-color: var(--bad);
+    background: var(--bad-soft);
+    color: var(--bad);
+  }
+
+  /* ---------- Text helpers ---------- */
+  .muted {
+    color: var(--text-muted);
+  }
+  .faint {
+    color: var(--text-faint);
+  }
+  .eyebrow {
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    font-weight: 600;
+  }
+
+  /* ---------- App shell ---------- */
+  .app-shell {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.85rem;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    min-height: 44px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .sidebar-item:hover {
+    background: var(--card-muted);
+    color: var(--text);
+  }
+  .sidebar-item-active {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(79, 91, 213, 0.30);
+  }
+  .sidebar-item-active:hover {
+    background: var(--primary-hover);
+    color: #fff;
+  }
+  /* Mobile bottom-nav item */
+  .tabbar-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    flex: 1 1 0;
+    min-height: 52px;
+    padding: 4px 2px;
+    font-size: 0.62rem;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+  .tabbar-item-active {
+    color: var(--primary);
+  }
 }
