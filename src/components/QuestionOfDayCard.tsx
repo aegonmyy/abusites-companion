@@ -24,6 +24,10 @@ type QotdResponse = {
 
 const OPTION_LABELS = ["A", "B", "C", "D"] as const;
 
+// Markup ported verbatim from Grinnish's QuestionOfDayCard (tone="dark"): the
+// glassmorphism card, uppercase eyebrow, "Daily quiz" pill, and the layered
+// option-button states. Data layer is the local target's — self-fetches
+// /api/qotd and answers via /api/qotd/answer (no auth, one implicit user).
 export default function QuestionOfDayCard() {
   const [data, setData] = useState<QotdResponse | null>(null);
   const [chosen, setChosen] = useState<number | null>(null);
@@ -55,7 +59,7 @@ export default function QuestionOfDayCard() {
 
   if (!data) {
     return (
-      <div className="card p-5 text-sm muted">
+      <div className="rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70 shadow-xl backdrop-blur">
         Loading question of the day…
       </div>
     );
@@ -65,7 +69,7 @@ export default function QuestionOfDayCard() {
     return (
       <div
         data-testid="qotd-empty"
-        className="card p-5 text-sm muted"
+        className="rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70 shadow-xl backdrop-blur"
       >
         No question of the day yet — the past-questions catalog is empty on
         this machine. Once past questions are seeded, one will appear here
@@ -79,12 +83,27 @@ export default function QuestionOfDayCard() {
   const answered = data.answeredIndex != null;
 
   return (
-    <div data-testid="qotd-card" className="card p-5 flex flex-col gap-3">
-      <div className="eyebrow">
-        Question of the day
+    <div
+      data-testid="qotd-card"
+      className="rounded-2xl border border-white/10 bg-white/10 p-6 shadow-xl backdrop-blur"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-white/50">
+            Question of the day
+          </p>
+          <p className="text-white/70">{data.date}</p>
+        </div>
+        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/70">
+          Daily quiz
+        </span>
       </div>
-      <MathText as="p" className="font-medium" text={q.questionText ?? q.title} />
-      <div className="flex flex-col gap-2">
+
+      <div className="mt-4 text-base font-semibold">
+        <MathText as="p" className="text-white" text={q.questionText ?? q.title} />
+      </div>
+
+      <div className="mt-4 grid gap-2">
         {options.map((opt, i) =>
           opt ? (
             <button
@@ -93,23 +112,27 @@ export default function QuestionOfDayCard() {
               disabled={answered || submitting}
               onClick={() => answer(i)}
               data-testid={`qotd-option-${i}`}
-              className={
-                "option " +
-                (answered && i === q.correctIndex
-                  ? "option-correct"
+              aria-pressed={chosen === i}
+              className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-left text-sm text-white transition hover:border-white/30 ${
+                answered && i === q.correctIndex
+                  ? "border-emerald-300/60 bg-emerald-500/20"
                   : answered && i === chosen && i !== q.correctIndex
-                    ? "option-wrong"
-                    : "")
-              }
+                    ? "border-rose-300/60 bg-rose-500/20"
+                    : "border-white/10 bg-white/5"
+              }`}
             >
-              <span className="font-mono mr-2">{OPTION_LABELS[i]}.</span>
-              <MathText text={opt} />
+              <span className="mt-[2px] text-xs font-semibold">{OPTION_LABELS[i]}.</span>
+              <MathText as="span" className="text-white" text={opt} />
             </button>
           ) : null,
         )}
       </div>
+
       {answered && q.explanation && (
-        <div data-testid="qotd-explanation" className="text-sm muted pt-3" style={{ borderTop: "1px solid var(--border)" }}>
+        <div
+          data-testid="qotd-explanation"
+          className="mt-4 border-t border-white/10 pt-3 text-sm text-white/60"
+        >
           <MathText text={q.explanation} />
         </div>
       )}
