@@ -3,18 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { t, useLanguage } from "@/lib/i18n";
 
 const LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/study", label: "Study" },
-  { href: "/notes", label: "Notes" },
-  { href: "/past-questions", label: "Past Qs" },
-  { href: "/bookmarks", label: "Bookmarks" },
-  { href: "/settings", label: "Settings" },
+  { href: "/", key: "nav_home" as const },
+  { href: "/study", key: "nav_study" as const },
+  { href: "/notes", key: "nav_notes" as const },
+  { href: "/past-questions", key: "nav_past_qs" as const },
+  { href: "/bookmarks", key: "nav_bookmarks" as const },
+  { href: "/settings", key: "nav_settings" as const },
 ];
 
 export default function NavBar() {
   const pathname = usePathname();
+  const language = useLanguage();
   const [streak, setStreak] = useState<number | null>(null);
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export default function NavBar() {
                   : "text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white"
               }
             >
-              {link.label}
+              {t(link.key, language)}
             </Link>
           ))}
           {streak !== null && streak > 0 && (
@@ -57,7 +59,7 @@ export default function NavBar() {
               data-testid="streak-badge"
               className="rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 px-2 py-0.5 text-xs font-medium"
             >
-              {streak} day streak
+              {streak} {t("day_streak", language)}
             </span>
           )}
         </nav>
