@@ -103,88 +103,90 @@ export default function StudyIntakePage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4" data-testid="study-intake-form">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5" data-testid="study-intake-form">
       <div>
         <h1 className="text-xl font-semibold">Study mode</h1>
-        <p className="text-sm text-black/60 dark:text-white/60 mt-1">
+        <p className="text-sm muted mt-1">
           Tell it what you want to study — the local model builds a compact
           syllabus, then tutors you through each subunit.
         </p>
       </div>
 
-      <label className="flex flex-col gap-1 text-sm">
-        Topic
-        <input
-          required
-          value={topic}
-          onChange={(e) => setTopic(e.target.value)}
-          data-testid="topic-input"
-          className="border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 bg-transparent"
-          placeholder="e.g. Newton's laws of motion"
-        />
-      </label>
+      <div className="card p-5 flex flex-col gap-4">
+        <label className="flex flex-col gap-1.5 text-sm font-medium">
+          Topic
+          <input
+            required
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            data-testid="topic-input"
+            className="field font-normal"
+            placeholder="e.g. Newton's laws of motion"
+          />
+        </label>
 
-      <label className="flex flex-col gap-1 text-sm">
-        Goal
-        <input
-          required
-          value={goal}
-          onChange={(e) => setGoal(e.target.value)}
-          data-testid="goal-input"
-          className="border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 bg-transparent"
-          placeholder="e.g. pass Friday's quiz"
-        />
-      </label>
+        <label className="flex flex-col gap-1.5 text-sm font-medium">
+          Goal
+          <input
+            required
+            value={goal}
+            onChange={(e) => setGoal(e.target.value)}
+            data-testid="goal-input"
+            className="field font-normal"
+            placeholder="e.g. pass Friday's quiz"
+          />
+        </label>
 
-      <label className="flex flex-col gap-1 text-sm">
-        Minutes available
-        <input
-          required
-          type="number"
-          min={5}
-          value={studyMinutes}
-          onChange={(e) => setStudyMinutes(Number(e.target.value))}
-          data-testid="minutes-input"
-          className="border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 bg-transparent"
-        />
-      </label>
+        <label className="flex flex-col gap-1.5 text-sm font-medium">
+          Minutes available
+          <input
+            required
+            type="number"
+            min={5}
+            value={studyMinutes}
+            onChange={(e) => setStudyMinutes(Number(e.target.value))}
+            data-testid="minutes-input"
+            className="field font-normal"
+          />
+        </label>
 
-      <label className="flex flex-col gap-1 text-sm">
-        Scenario
-        <select
-          value={scenarioType}
-          onChange={(e) => setScenarioType(e.target.value)}
-          data-testid="scenario-type-select"
-          className="border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 bg-transparent"
-        >
-          {SCENARIOS.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
-      </label>
+        <label className="flex flex-col gap-1.5 text-sm font-medium">
+          Scenario
+          <select
+            value={scenarioType}
+            onChange={(e) => setScenarioType(e.target.value)}
+            data-testid="scenario-type-select"
+            className="field font-normal"
+          >
+            {SCENARIOS.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </label>
 
-      <label className="flex flex-col gap-1 text-sm">
-        Describe your situation
-        <textarea
-          required
-          value={scenario}
-          onChange={(e) => setScenario(e.target.value)}
-          data-testid="scenario-input"
-          className="border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 bg-transparent"
-          rows={3}
-          placeholder="e.g. I understand the basics but keep messing up direction/sign conventions."
-        />
-      </label>
+        <label className="flex flex-col gap-1.5 text-sm font-medium">
+          Describe your situation
+          <textarea
+            required
+            value={scenario}
+            onChange={(e) => setScenario(e.target.value)}
+            data-testid="scenario-input"
+            className="field font-normal"
+            rows={3}
+            placeholder="e.g. I understand the basics but keep messing up direction/sign conventions."
+          />
+        </label>
+      </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm" style={{ color: "var(--bad)" }}>{error}</p>}
 
       <button
         type="submit"
         disabled={status === "generating"}
         data-testid="generate-syllabus-button"
-        className="self-start rounded-full bg-black text-white dark:bg-white dark:text-black px-5 py-2 text-sm font-medium disabled:opacity-50"
+        className="btn btn-primary btn-block"
       >
         {status === "generating" ? "Generating syllabus…" : "Generate syllabus"}
       </button>

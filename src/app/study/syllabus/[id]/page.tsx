@@ -3,6 +3,7 @@
 import { use, useEffect, useRef, useState } from "react";
 import MathText from "@/components/MathText";
 import MicButton from "@/components/MicButton";
+import SendGlyph from "@/components/SendGlyph";
 import { subunitTutorSystemPrompt, type Language } from "@/lib/prompts";
 
 type Subunit = {
@@ -151,7 +152,7 @@ export default function SyllabusPage({
   }
 
   if (!syllabus) {
-    return <p className="text-sm text-black/60 dark:text-white/60">Loading syllabus…</p>;
+    return <p className="text-sm muted">Loading syllabus…</p>;
   }
 
   const completedSet = new Set(syllabus.progress.filter((p) => p.completed).map((p) => p.subunitId));
@@ -160,14 +161,14 @@ export default function SyllabusPage({
     <div className="flex flex-col gap-4" data-testid="syllabus-page">
       <div>
         <h1 className="text-xl font-semibold">{syllabus.topic}</h1>
-        <p className="text-sm text-black/60 dark:text-white/60">{syllabus.goal}</p>
+        <p className="text-sm muted">{syllabus.goal}</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 items-start">
         <div className="flex flex-col gap-3" data-testid="syllabus-tree">
           {syllabus.units.map((unit) => (
-            <div key={unit.unit_id} className="border border-black/10 dark:border-white/10 rounded-lg p-3">
-              <div className="font-medium mb-2">{unit.title}</div>
+            <div key={unit.unit_id} className="card p-4">
+              <div className="font-semibold mb-2">{unit.title}</div>
               <ul className="flex flex-col gap-1">
                 {unit.subunits.map((su) => (
                   <li key={su.subunit_id}>
@@ -176,10 +177,10 @@ export default function SyllabusPage({
                       onClick={() => openSubunit(su)}
                       data-testid={`subunit-${su.subunit_id}`}
                       className={
-                        "w-full text-left text-sm rounded px-2 py-1 " +
+                        "w-full text-left text-sm rounded-lg px-3 py-2 transition-colors " +
                         (activeSubunit?.subunit_id === su.subunit_id
-                          ? "bg-black/10 dark:bg-white/10"
-                          : "hover:bg-black/5 dark:hover:bg-white/5")
+                          ? "option-selected"
+                          : "hover:bg-[var(--card-muted)]")
                       }
                     >
                       {completedSet.has(su.subunit_id) ? "✓ " : ""}
@@ -192,17 +193,17 @@ export default function SyllabusPage({
           ))}
         </div>
 
-        <div className="border border-black/10 dark:border-white/10 rounded-lg p-3 flex flex-col gap-3 min-h-[24rem]">
+        <div className="card p-4 flex flex-col gap-3 min-h-[24rem] md:sticky md:top-6">
           {!activeSubunit && (
-            <p className="text-sm text-black/60 dark:text-white/60">
+            <p className="text-sm muted">
               Pick a subunit on the left to start the tutor.
             </p>
           )}
           {activeSubunit && (
             <>
-              <div className="flex items-center justify-between">
-                <span className="font-medium">{activeSubunit.title}</span>
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-semibold">{activeSubunit.title}</span>
+                <div className="flex items-center gap-3 shrink-0">
                   <button
                     type="button"
                     onClick={() =>
@@ -217,7 +218,8 @@ export default function SyllabusPage({
                       })
                     }
                     data-testid="bookmark-subunit-button"
-                    className="text-xs underline"
+                    className="text-xs font-medium"
+                    style={{ color: "var(--primary)" }}
                   >
                     Bookmark
                   </button>
@@ -225,7 +227,8 @@ export default function SyllabusPage({
                     type="button"
                     onClick={markComplete}
                     data-testid="mark-complete-button"
-                    className="text-xs underline"
+                    className="text-xs font-medium"
+                    style={{ color: "var(--primary)" }}
                   >
                     {completedSet.has(activeSubunit.subunit_id) ? "Completed" : "Mark complete"}
                   </button>
@@ -236,12 +239,7 @@ export default function SyllabusPage({
                 {chat.map((m, i) => (
                   <div
                     key={i}
-                    className={
-                      "text-sm rounded-lg px-3 py-2 max-w-[90%] " +
-                      (m.role === "user"
-                        ? "self-end bg-black text-white dark:bg-white dark:text-black"
-                        : "self-start bg-black/5 dark:bg-white/10")
-                    }
+                    className={"bubble " + (m.role === "user" ? "bubble-user" : "bubble-assistant")}
                   >
                     <MathText text={m.content} />
                   </div>
@@ -254,22 +252,23 @@ export default function SyllabusPage({
                   e.preventDefault();
                   send();
                 }}
-                className="flex gap-2"
+                className="flex gap-2 items-center"
               >
                 <input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask the tutor…"
                   data-testid="chat-input"
-                  className="flex-1 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 bg-transparent text-sm"
+                  className="field flex-1"
                 />
                 <button
                   type="submit"
                   disabled={streaming}
                   data-testid="chat-send-button"
-                  className="rounded-lg bg-black text-white dark:bg-white dark:text-black px-3 py-2 text-sm disabled:opacity-50"
+                  className="btn-icon btn-icon-primary"
+                  aria-label="Send"
                 >
-                  Send
+                  <SendGlyph />
                 </button>
                 <MicButton disabled={streaming} onRecorded={sendAudio} />
               </form>
