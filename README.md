@@ -1,10 +1,10 @@
 # Grinnish Local
 
 An offline study companion for Nigerian university students — AI-generated
-syllabi, a streaming tutor, past-question CBT practice, and photo/paste-in
-notes with auto-generated summaries and quizzes — running entirely on the
-student's own machine against a local Gemma model. No account, no login, no
-cloud calls at runtime.
+syllabi, a streaming tutor you can talk to by text or voice, past-question
+CBT practice, and paste/PDF/photo notes with auto-generated summaries and
+quizzes — running entirely on the student's own machine against a local
+Gemma model. No account, no login, no cloud calls at runtime.
 
 This is a local, single-user port of [Grinnish](https://grinnish.ameenme.dev),
 a hosted SaaS built on Supabase + Gemini. Everything here runs on-device
@@ -28,10 +28,18 @@ on the same machine.
 ## Features
 
 - **Study mode** — describe a topic and goal, get a compact AI-generated
-  syllabus, then work through each subunit with a streaming local tutor.
-- **Notes** — paste text or snap a photo of a textbook page/handwritten
-  notes; the local model (vision-capable) reads it and produces a summary,
-  key concepts, and a short quiz. Follow-up chat scoped to the note.
+  syllabus, then work through each subunit with a streaming local tutor —
+  by typing or by tapping the mic and asking out loud.
+- **Notes** — paste text, upload a PDF, or snap a photo of a textbook
+  page/handwritten notes; the local model (vision-capable, and PDF text
+  extracted locally via pdfjs-dist) reads it and produces a summary, key
+  concepts, and a short quiz. Follow-up chat (text or voice) scoped to the
+  note.
+- **Voice input** — real audio understanding via Ollama's OpenAI-compatible
+  endpoint (not the native `/api/chat` `images` field — that doesn't carry
+  audio; see `docs/AUDIO_FINDING.md` for the full finding). The mic always
+  re-encodes to WAV client-side before sending, never relying on the
+  browser's native recording codec.
 - **Past questions + CBT** — browse a seeded catalog of courses and past
   exam questions, practice in a timed CBT-style flow, get scored instantly.
 - **Question of the day** — a daily practice question with streak tracking.
@@ -131,7 +139,17 @@ against a clean production build:
 npm run build && npm start &
 node tests/phase1-tour.mjs           # dashboard, QOTD, settings, past-Qs/CBT, bookmarks, study mode
 node tests/phase2-notes-tour.mjs     # notes: paste + photo intake, quiz, scoped chat, bookmarking
+node tests/phase2-pdf-tour.mjs       # notes: real PDF text extraction + summarization
+node tests/phase3-voice-tour.mjs     # voice: real mic capture -> WAV -> Ollama -> streamed reply
 node tests/phase4-offline-audit.mjs  # asserts zero non-localhost network requests across the whole app
+```
+
+Hausa/English eval (30 real prompts against the local model, math/biology/
+civic, pure Hausa / code-switched / English — raw results committed at
+`docs/hausa-eval.md`):
+
+```bash
+npm run eval:hausa
 ```
 
 ## Known limitations / open items
@@ -150,13 +168,20 @@ node tests/phase4-offline-audit.mjs  # asserts zero non-localhost network reques
   static UI chrome (buttons, page headers) only has a partial,
   machine-translated pass (nav bar) — not yet reviewed by a native Hausa
   speaker, and not yet applied to every page's microcopy.
-- **Audio input**: `gemma4:e2b` is audio-capable per `ollama show`, but
-  audio input isn't wired up anywhere in the app (only text and image).
-  Deferred — no verified working path was built for it.
 - **`setup.ps1`**: written to mirror `setup.sh` exactly and reviewed
   carefully, but not executed on real Windows hardware (none available in
   this environment) — treat as a reviewed-but-unverified first pass.
 - **Physical device / native-speaker validation**: this build has not been
-  run on the actual target hardware (a lower-spec device, referred to as
-  "the EliteBook" in project notes) or reviewed by a native Hausa speaker.
-  Both require physical/human access this environment doesn't have.
+  run on the actual target hardware (HP EliteBook 840 G2, i7-5600U,
+  2015, no GPU, 16GB RAM) or reviewed by a native Hausa speaker. Both
+  require physical/human access this environment doesn't have. The
+  30-prompt Hausa eval (`docs/hausa-eval.md`) and all latency numbers in
+  this repo were measured on a shared dev VPS, not the EliteBook —
+  re-running `npm run eval:hausa` on the real device, and only then
+  cautiously trialing `gemma4:e4b` while watching for OOM, is the
+  pending hardware-verification step.
+- **Audio latency**: voice replies take noticeably longer than text/image
+  (13–18s measured on the dev VPS) because Ollama's audio-capable endpoint
+  doesn't honor `think:false` for this model — every audio call runs a
+  full internal reasoning trace before the visible answer. See
+  `docs/AUDIO_FINDING.md`. Expect this to be slower still on the EliteBook.
