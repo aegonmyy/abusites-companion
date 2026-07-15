@@ -41,24 +41,24 @@ export default function SettingsPage() {
   }
 
   if (loading) {
-    return <p className="text-sm text-black/60 dark:text-white/60">Loading settings…</p>;
+    return <p className="text-sm muted">Loading settings…</p>;
   }
 
   return (
     <div className="flex flex-col gap-6" data-testid="settings-page">
       <div>
         <h1 className="text-xl font-semibold">Settings</h1>
-        <p className="text-sm text-black/60 dark:text-white/60 mt-1">
+        <p className="text-sm muted mt-1">
           Everything below runs entirely on this machine. No account, no login.
         </p>
       </div>
 
       <fieldset className="flex flex-col gap-3">
-        <legend className="font-medium mb-1">Language</legend>
+        <legend className="font-semibold mb-1">Language</legend>
         {LANGUAGE_OPTIONS.map((opt) => (
           <label
             key={opt.value}
-            className="flex items-start gap-3 border border-black/10 dark:border-white/10 rounded-lg p-3 cursor-pointer has-[:checked]:border-black/40 dark:has-[:checked]:border-white/40"
+            className="card flex items-start gap-3 p-4 cursor-pointer transition-shadow has-[:checked]:shadow-[0_0_0_2px_var(--primary)]"
           >
             <input
               type="radio"
@@ -66,19 +66,19 @@ export default function SettingsPage() {
               value={opt.value}
               checked={language === opt.value}
               onChange={() => save(opt.value)}
-              className="mt-1"
+              className="mt-1 accent-[var(--primary)]"
               data-testid={`language-${opt.value}`}
             />
             <span>
               <span className="block font-medium">{opt.label}</span>
-              <span className="block text-sm text-black/60 dark:text-white/60">{opt.hint}</span>
+              <span className="block text-sm muted">{opt.hint}</span>
             </span>
           </label>
         ))}
       </fieldset>
 
-      <div className="text-sm text-black/60 dark:text-white/60">
-        Model: <span className="font-mono">gemma4:e2b</span> (fixed for this build — the
+      <div className="card p-4 text-sm muted">
+        Model: <span className="font-mono" style={{ color: "var(--text)" }}>gemma4:e2b</span> (fixed for this build — the
         larger e4b variant is only ever enabled after verified-stable memory
         testing on the demo hardware).
         {saving && <span className="ml-2">Saving…</span>}

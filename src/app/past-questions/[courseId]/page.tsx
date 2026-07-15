@@ -49,39 +49,39 @@ export default function CourseDetailPage({
     return <p className="text-sm">Course not found.</p>;
   }
   if (!course) {
-    return <p className="text-sm text-black/60 dark:text-white/60">Loading…</p>;
+    return <p className="text-sm muted">Loading…</p>;
   }
 
   return (
     <div className="flex flex-col gap-4" data-testid="course-detail-page">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-xl font-semibold">
-            <span className="font-mono">{course.code}</span> — {course.title}
+            <span className="font-mono" style={{ color: "var(--primary)" }}>{course.code}</span> — {course.title}
           </h1>
-          <p className="text-sm text-black/60 dark:text-white/60">
+          <p className="text-sm muted">
             {course.pastQuestions.length} past question(s)
           </p>
         </div>
         <Link
           href={`/cbt/${course.id}`}
           data-testid="start-cbt-link"
-          className="rounded-full bg-black text-white dark:bg-white dark:text-black px-4 py-2 text-sm font-medium"
+          className="btn btn-primary shrink-0"
         >
           Start CBT practice
         </Link>
       </div>
 
       {course.pastQuestions.length === 0 && (
-        <p data-testid="questions-empty" className="text-sm text-black/60 dark:text-white/60">
+        <p data-testid="questions-empty" className="text-sm muted">
           No past questions for this course yet.
         </p>
       )}
 
       <ol className="flex flex-col gap-4">
         {course.pastQuestions.map((q, i) => (
-          <li key={q.id} className="border border-black/10 dark:border-white/10 rounded-lg p-3">
-            <div className="flex items-center justify-between text-xs text-black/50 dark:text-white/50 mb-1">
+          <li key={q.id} className="card p-4">
+            <div className="flex items-center justify-between text-xs faint mb-2">
               <span>
                 {i + 1}. {q.year ?? "Year unknown"}
               </span>
@@ -99,18 +99,20 @@ export default function CourseDetailPage({
                     }),
                   })
                 }
-                className="underline"
+                className="font-medium"
+                style={{ color: "var(--primary)" }}
               >
                 Bookmark
               </button>
             </div>
-            <MathText as="p" className="mb-2" text={q.questionText ?? q.title} />
+            <MathText as="p" className="mb-2 font-medium" text={q.questionText ?? q.title} />
             <ul className="flex flex-col gap-1 text-sm">
               {[q.optionA, q.optionB, q.optionC, q.optionD].map((opt, idx) =>
                 opt ? (
                   <li
                     key={idx}
-                    className={idx === q.correctIndex ? "text-green-700 dark:text-green-400 font-medium" : ""}
+                    className={idx === q.correctIndex ? "font-semibold" : ""}
+                    style={idx === q.correctIndex ? { color: "var(--good)" } : undefined}
                   >
                     {String.fromCharCode(65 + idx)}. <MathText text={opt} />
                   </li>

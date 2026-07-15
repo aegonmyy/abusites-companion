@@ -69,19 +69,19 @@ export default function CbtStartPage({
   }
 
   if (state === "loading") {
-    return <p className="text-sm text-black/60 dark:text-white/60">Starting CBT…</p>;
+    return <p className="text-sm muted">Starting CBT…</p>;
   }
 
   if (state === "empty") {
     return (
       <div data-testid="cbt-empty" className="flex flex-col gap-3">
-        <p className="text-sm text-black/60 dark:text-white/60">
+        <p className="text-sm muted">
           No past questions available for this course yet.
         </p>
         <button
           type="button"
           onClick={() => router.back()}
-          className="self-start text-sm underline"
+          className="btn btn-secondary self-start"
         >
           Go back
         </button>
@@ -90,7 +90,7 @@ export default function CbtStartPage({
   }
 
   if (state === "error") {
-    return <p className="text-sm text-red-600">Could not start CBT. Try again.</p>;
+    return <p className="text-sm" style={{ color: "var(--bad)" }}>Could not start CBT. Try again.</p>;
   }
 
   return (
@@ -100,7 +100,8 @@ export default function CbtStartPage({
       {result && (
         <div
           data-testid="cbt-result"
-          className="rounded-xl border border-black/10 dark:border-white/10 p-4 font-medium"
+          className="card p-5 font-semibold"
+          style={{ color: "var(--primary)" }}
         >
           Score: {result.score} / {result.total}
         </div>
@@ -108,9 +109,9 @@ export default function CbtStartPage({
 
       <ol className="flex flex-col gap-4">
         {questions.map((q, i) => (
-          <li key={q.id} className="border border-black/10 dark:border-white/10 rounded-lg p-3">
-            <MathText as="p" className="mb-2 font-medium" text={`${i + 1}. ${q.questionText ?? q.title}`} />
-            <div className="flex flex-col gap-1">
+          <li key={q.id} className="card p-4">
+            <MathText as="p" className="mb-2.5 font-medium" text={`${i + 1}. ${q.questionText ?? q.title}`} />
+            <div className="flex flex-col gap-1.5">
               {[q.optionA, q.optionB, q.optionC, q.optionD].map((opt, idx) =>
                 opt ? (
                   <button
@@ -120,16 +121,16 @@ export default function CbtStartPage({
                     data-testid={`cbt-q${i}-opt${idx}`}
                     onClick={() => choose(q.id, idx)}
                     className={
-                      "text-left border rounded px-2 py-1 text-sm " +
+                      "option " +
                       (result
                         ? idx === q.correctIndex
-                          ? "border-green-500 bg-green-50 dark:bg-green-900/30"
+                          ? "option-correct"
                           : answers[q.id] === idx
-                            ? "border-red-500 bg-red-50 dark:bg-red-900/30"
-                            : "border-black/10 dark:border-white/10"
+                            ? "option-wrong"
+                            : ""
                         : answers[q.id] === idx
-                          ? "border-black/60 dark:border-white/60"
-                          : "border-black/10 dark:border-white/10 hover:border-black/30 dark:hover:border-white/30")
+                          ? "option-selected"
+                          : "")
                     }
                   >
                     {String.fromCharCode(65 + idx)}. <MathText text={opt} />
@@ -146,7 +147,7 @@ export default function CbtStartPage({
           type="button"
           onClick={submit}
           data-testid="cbt-submit"
-          className="self-start rounded-full bg-black text-white dark:bg-white dark:text-black px-5 py-2 text-sm font-medium"
+          className="btn btn-primary self-start"
         >
           Submit
         </button>

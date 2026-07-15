@@ -12,7 +12,7 @@ export default function Home() {
     <div className="flex flex-col gap-8" data-testid="dashboard">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Grinnish Local</h1>
-        <p className="text-sm text-black/60 dark:text-white/60 mt-1">
+        <p className="text-sm muted mt-1">
           Offline study companion. Everything below runs on this machine —
           no network required once the model is downloaded.
         </p>
@@ -20,15 +20,15 @@ export default function Home() {
 
       <QuestionOfDayCard />
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3">
         {QUICK_LINKS.map((link) => (
           <Link
             key={link.href}
             href={link.href}
-            className="rounded-xl border border-black/10 dark:border-white/10 p-4 hover:border-black/30 dark:hover:border-white/30 flex flex-col gap-1"
+            className="card-link p-5 flex flex-col gap-1.5"
           >
-            <span className="font-medium">{link.title}</span>
-            <span className="text-sm text-black/60 dark:text-white/60">{link.desc}</span>
+            <span className="font-semibold">{link.title}</span>
+            <span className="text-sm muted">{link.desc}</span>
           </Link>
         ))}
       </div>

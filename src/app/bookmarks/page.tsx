@@ -34,35 +34,36 @@ export default function BookmarksPage() {
     <div className="flex flex-col gap-4" data-testid="bookmarks-page">
       <div>
         <h1 className="text-xl font-semibold">Bookmarks</h1>
-        <p className="text-sm text-black/60 dark:text-white/60 mt-1">
+        <p className="text-sm muted mt-1">
           Saved locally. Revisitable offline.
         </p>
       </div>
 
-      {!bookmarks && <p className="text-sm text-black/60 dark:text-white/60">Loading…</p>}
+      {!bookmarks && <p className="text-sm muted">Loading…</p>}
 
       {bookmarks && bookmarks.length === 0 && (
-        <p data-testid="bookmarks-empty" className="text-sm text-black/60 dark:text-white/60">
+        <p data-testid="bookmarks-empty" className="text-sm muted">
           No bookmarks yet.
         </p>
       )}
 
-      <ul className="flex flex-col gap-2" data-testid="bookmarks-list">
+      <ul className="flex flex-col gap-3" data-testid="bookmarks-list">
         {bookmarks?.map((b) => (
           <li
             key={b.id}
-            className="flex items-center justify-between border border-black/10 dark:border-white/10 rounded-lg px-3 py-2"
+            className="card flex items-center justify-between gap-3 px-4 py-3"
           >
-            <span>
-              <span className="text-xs text-black/50 dark:text-white/50 mr-2">
+            <span className="flex flex-col gap-1 min-w-0">
+              <span className="chip-neutral self-start">
                 {KIND_LABEL[b.kind] ?? b.kind}
               </span>
-              {b.label}
+              <span className="truncate">{b.label}</span>
             </span>
             <button
               type="button"
               onClick={() => remove(b.id)}
-              className="text-xs underline text-black/60 dark:text-white/60"
+              className="text-xs font-medium shrink-0"
+              style={{ color: "var(--bad)" }}
             >
               Remove
             </button>

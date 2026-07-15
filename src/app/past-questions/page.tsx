@@ -23,32 +23,32 @@ export default function PastQuestionsPage() {
     <div className="flex flex-col gap-4" data-testid="past-questions-page">
       <div>
         <h1 className="text-xl font-semibold">Past questions</h1>
-        <p className="text-sm text-black/60 dark:text-white/60 mt-1">
+        <p className="text-sm muted mt-1">
           Browse seeded courses. Courses with a question count of 0 don&apos;t
           have past-question content on this machine yet.
         </p>
       </div>
 
-      {!courses && <p className="text-sm text-black/60 dark:text-white/60">Loading courses…</p>}
+      {!courses && <p className="text-sm muted">Loading courses…</p>}
 
       {courses && courses.length === 0 && (
-        <p data-testid="courses-empty" className="text-sm text-black/60 dark:text-white/60">
+        <p data-testid="courses-empty" className="text-sm muted">
           No courses seeded yet. Run <code className="font-mono">npm run seed</code>.
         </p>
       )}
 
-      <ul className="flex flex-col gap-2" data-testid="courses-list">
+      <ul className="flex flex-col gap-3" data-testid="courses-list">
         {courses?.map((c) => (
           <li key={c.id}>
             <Link
               href={`/past-questions/${c.id}`}
-              className="flex items-center justify-between border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 hover:border-black/30 dark:hover:border-white/30"
+              className="card-link flex items-center justify-between gap-3 px-4 py-3.5"
             >
-              <span>
-                <span className="font-mono text-sm">{c.code}</span>{" "}
-                <span className="text-sm text-black/70 dark:text-white/70">{c.title}</span>
+              <span className="min-w-0">
+                <span className="font-mono text-sm font-semibold" style={{ color: "var(--primary)" }}>{c.code}</span>{" "}
+                <span className="text-sm">{c.title}</span>
               </span>
-              <span className="text-xs text-black/50 dark:text-white/50">
+              <span className="chip-neutral shrink-0">
                 {c.pastQuestionCount} question{c.pastQuestionCount === 1 ? "" : "s"}
               </span>
             </Link>
