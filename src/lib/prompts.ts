@@ -71,3 +71,29 @@ export function imageExplainSystemPrompt(language: Language): string {
     "The student has shared a photo (e.g. a handwritten question or textbook page). Read it carefully, then answer or explain it directly. If the image is unclear, say so briefly and ask for a clearer photo instead of guessing.",
   ].join("\n");
 }
+
+/** Same JSON contract as notesSummarySystemPrompt, but the source is a photo
+ * (textbook page, handwritten notes) instead of pasted text. */
+export function notesSummaryFromImageSystemPrompt(language: Language): string {
+  return [
+    BASE,
+    languageLine(language),
+    "The student has shared a photo of study material (textbook page, handwritten notes, slide). Read the text in the image carefully, then produce strict JSON only: " +
+      '{"summary":"...","key_concepts":["..."],"quiz":[{"question":"...","options":["A","B","C","D"],"correct_index":0}]}',
+    "Summary must be compact (a few sentences). 3-6 key concepts. 3-5 quiz questions. If the image is unreadable, return a summary saying so and an empty key_concepts/quiz array — do not invent content.",
+    "Plain text only inside every JSON string value: no LaTeX, no backslashes, no markdown.",
+  ].join("\n");
+}
+
+export function notesChatSystemPrompt(language: Language, title: string, summary: string, keyConcepts: string[]): string {
+  return [
+    BASE,
+    languageLine(language),
+    `You are answering follow-up questions about a saved note titled "${title}".`,
+    `Note summary: ${summary}`,
+    keyConcepts.length ? `Key concepts: ${keyConcepts.join(", ")}.` : "",
+    "Answer using this note as context. Explain simply, short worked examples over long prose. If asked something the note doesn't cover, say so briefly, then answer anyway if you can.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
