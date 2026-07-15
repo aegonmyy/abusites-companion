@@ -1,0 +1,91 @@
+# Grinnish Local — one-command setup for Windows (PowerShell).
+# Mirrors setup.sh — see that file for the full rationale of each step.
+#
+# NOTE: written and reviewed for correctness, but not executed on real
+# Windows hardware as part of this work (no Windows machine available in
+# this environment). Treat as a best-effort first pass; flagged as an open
+# item for validation on the actual target device (see final report).
+#
+# Usage (from an elevated or normal PowerShell prompt):
+#   powershell -ExecutionPolicy Bypass -File .\setup.ps1
+
+$ErrorActionPreference = "Stop"
+$Model = "gemma4:e2b"
+
+function Info($msg)  { Write-Host "==> $msg" -ForegroundColor Green }
+function Warn($msg)  { Write-Host "==> $msg" -ForegroundColor Yellow }
+function Fail($msg)  { Write-Host "==> $msg" -ForegroundColor Red; exit 1 }
+
+Set-Location -Path $PSScriptRoot
+
+Info "Checking Node.js..."
+if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+  Fail "Node.js not found. Install Node 20+ from https://nodejs.org and re-run this script."
+}
+$nodeMajor = [int]((node -e "console.log(process.versions.node.split('.')[0])").Trim())
+if ($nodeMajor -lt 20) {
+  Fail "Node.js $nodeMajor found; this app needs Node 20+. Upgrade and re-run."
+}
+Info "Node $(node -v) OK."
+
+if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+  Fail "npm not found alongside Node -- reinstall Node.js."
+}
+
+Info "Checking Ollama..."
+if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) {
+  Fail "Ollama not found. Install it from https://ollama.com/download, then re-run this script."
+}
+
+try {
+  Invoke-WebRequest -Uri "http://localhost:11434/api/tags" -TimeoutSec 3 -UseBasicParsing | Out-Null
+  Info "Ollama is running."
+} catch {
+  Warn "Ollama is installed but doesn't seem to be running."
+  Warn "Start it (e.g. from the Ollama app, or 'ollama serve' in another window)."
+  Warn "Then re-run this script."
+  exit 1
+}
+
+Info "Checking for local model ($Model)..."
+$modelList = ollama list 2>$null
+if ($modelList -match [regex]::Escape($Model)) {
+  Info "$Model already present."
+} else {
+  Warn "$Model not found locally -- pulling now (one-time, needs internet, ~7GB)."
+  ollama pull $Model
+}
+
+Info "Installing npm dependencies (this also runs prisma generate)..."
+npm install
+
+Info "Ensuring local SQLite schema exists..."
+New-Item -ItemType Directory -Force -Path data | Out-Null
+if (-not (Test-Path "data\grinnish.db")) {
+  npx prisma migrate deploy
+  if ((Test-Path ".env") -and (Select-String -Path ".env" -Pattern "SUPABASE_URL" -Quiet)) {
+    Warn "Supabase seed credentials found in .env."
+    $reply = Read-Host "Run the one-time catalog seed now? [y/N]"
+    if ($reply -match "^[Yy]$") {
+      npm run seed
+    }
+  } else {
+    Warn "No data\grinnish.db and no seed credentials in .env -- the app will run"
+    Warn "with an empty course/past-questions catalog. If you received a"
+    Warn "pre-populated data\grinnish.db alongside this app, copy it into"
+    Warn ".\data\ before running this script again."
+  }
+} else {
+  Info "data\grinnish.db already exists -- applying any pending migrations, not re-seeding."
+  npx prisma migrate deploy
+}
+
+Info "Building production bundle..."
+npm run build
+
+Info "Setup complete."
+Write-Host ""
+Write-Host "  1. Make sure Ollama is running (the Ollama app, or 'ollama serve')"
+Write-Host "  2. Start the app:  npm start"
+Write-Host "  3. Open:           http://localhost:3000"
+Write-Host ""
