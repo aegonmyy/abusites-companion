@@ -67,6 +67,16 @@ const LINKS = [
   { href: "/settings", key: "nav_settings" as const, Icon: SettingsIcon },
 ];
 
+// Desktop sidebar shows all six. On mobile the bottom bar is compressed to the
+// four primary study surfaces (roomy full-label tabs at ~93px on a 375px
+// screen); Bookmarks + Settings move to the mobile top header as icon buttons.
+const MOBILE_TABBAR_LINKS = LINKS.filter((l) =>
+  ["/", "/study", "/notes", "/past-questions"].includes(l.href),
+);
+const MOBILE_HEADER_LINKS = LINKS.filter((l) =>
+  ["/bookmarks", "/settings"].includes(l.href),
+);
+
 function isActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(href + "/");
@@ -159,15 +169,38 @@ export default function NavBar() {
             Grinnish
           </span>
         </Link>
-        {streak !== null && streak > 0 && (
-          <span
-            data-testid="streak-badge-mobile"
-            className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
-            style={{ background: "#fff2e5", color: "#c2560a" }}
-          >
-            🔥 {streak}
-          </span>
-        )}
+        <div className="flex items-center gap-1">
+          {streak !== null && streak > 0 && (
+            <span
+              data-testid="streak-badge-mobile"
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold mr-1"
+              style={{ background: "#fff2e5", color: "#c2560a" }}
+            >
+              🔥 {streak}
+            </span>
+          )}
+          {MOBILE_HEADER_LINKS.map(({ href, key, Icon }) => {
+            const active = isActive(pathname, href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                aria-label={t(key, language)}
+                title={t(key, language)}
+                data-testid={`header-link-${href === "/bookmarks" ? "bookmarks" : "settings"}`}
+                className="inline-flex items-center justify-center rounded-lg"
+                style={{
+                  width: 44,
+                  height: 44,
+                  color: active ? "var(--primary)" : "var(--text-muted)",
+                }}
+              >
+                <Icon />
+              </Link>
+            );
+          })}
+        </div>
       </header>
 
       {/* Mobile: fixed bottom nav bar */}
@@ -176,7 +209,7 @@ export default function NavBar() {
         style={{ background: "var(--card)", borderColor: "var(--border)", paddingBottom: "env(safe-area-inset-bottom)" }}
         data-testid="bottom-nav"
       >
-        {LINKS.map(({ href, key, Icon }) => {
+        {MOBILE_TABBAR_LINKS.map(({ href, key, Icon }) => {
           const active = isActive(pathname, href);
           return (
             <Link
