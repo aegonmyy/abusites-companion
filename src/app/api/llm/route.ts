@@ -1,5 +1,13 @@
 import { prisma } from "@/lib/prisma";
-import { ollamaChatStream, ndjsonToTextStream, DEFAULT_MODEL, type ChatMessage, type RouteTag } from "@/lib/ollama";
+import {
+  ollamaChatStream,
+  ollamaChatAudioStream,
+  ndjsonToTextStream,
+  sseToTextStream,
+  DEFAULT_MODEL,
+  type ChatMessage,
+  type RouteTag,
+} from "@/lib/ollama";
 
 export const runtime = "nodejs";
 
@@ -7,6 +15,10 @@ type LlmRequestBody = {
   routeTag: RouteTag;
   messages: ChatMessage[];
   system?: string;
+  /** Present only for voice input (see src/lib/audio-record.ts) — routes
+   * this call through the audio-capable OpenAI-compatible endpoint instead
+   * of the native one. See ollamaChatAudioStream for why. */
+  audio?: { base64: string; format: string };
 };
 
 /**
@@ -27,17 +39,29 @@ export async function POST(request: Request) {
     });
   }
 
-  const { routeTag, messages, system } = body;
+  const { routeTag, messages, system, audio } = body;
 
-  if (!routeTag || !["json", "lesson", "chat", "gloss"].includes(routeTag)) {
+  if (!routeTag || !["json", "lesson", "chat", "gloss", "audio"].includes(routeTag)) {
     return new Response(JSON.stringify({ error: "Invalid or missing routeTag." }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  if (!Array.isArray(messages) || messages.length === 0) {
-    return new Response(JSON.stringify({ error: "messages must be a non-empty array." }), {
+  if (!Array.isArray(messages)) {
+    return new Response(JSON.stringify({ error: "messages must be an array." }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  if (!audio && messages.length === 0) {
+    return new Response(JSON.stringify({ error: "messages must be non-empty unless audio is present." }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  if (audio && (typeof audio.base64 !== "string" || !audio.base64)) {
+    return new Response(JSON.stringify({ error: "audio.base64 is required when audio is present." }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
@@ -46,13 +70,19 @@ export async function POST(request: Request) {
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   const model = settings?.model ?? DEFAULT_MODEL;
 
-  const fullMessages: ChatMessage[] = system
-    ? [{ role: "system", content: system }, ...messages]
-    : messages;
-
   let upstream: Response;
+  let textStream: ReadableStream<Uint8Array>;
   try {
-    upstream = await ollamaChatStream({ routeTag, messages: fullMessages, model });
+    if (audio) {
+      upstream = await ollamaChatAudioStream({ system, history: messages, audio, model });
+      textStream = sseToTextStream(upstream.body!);
+    } else {
+      const fullMessages: ChatMessage[] = system
+        ? [{ role: "system", content: system }, ...messages]
+        : messages;
+      upstream = await ollamaChatStream({ routeTag, messages: fullMessages, model });
+      textStream = ndjsonToTextStream(upstream.body!);
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return new Response(
@@ -64,8 +94,6 @@ export async function POST(request: Request) {
       { status: 503, headers: { "Content-Type": "application/json" } },
     );
   }
-
-  const textStream = ndjsonToTextStream(upstream.body!);
 
   return new Response(textStream, {
     headers: {

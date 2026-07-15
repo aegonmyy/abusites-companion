@@ -3,6 +3,7 @@
 import { use, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import MathText from "@/components/MathText";
+import MicButton from "@/components/MicButton";
 import { notesChatSystemPrompt, type Language } from "@/lib/prompts";
 
 type QuizQuestion = {
@@ -75,6 +76,22 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     router.push("/notes");
   }
 
+  async function streamAssistantReply(res: Response) {
+    setChat((prev) => [...prev, { role: "assistant", content: "" }]);
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      setChat((prev) => {
+        const copy = [...prev];
+        copy[copy.length - 1] = { ...copy[copy.length - 1], content: copy[copy.length - 1].content + chunk };
+        return copy;
+      });
+    }
+  }
+
   async function send() {
     if (!input.trim() || !note || streaming) return;
     const userMsg: ChatMsg = { role: "user", content: input.trim() };
@@ -92,20 +109,29 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
         body: JSON.stringify({ routeTag: "chat", system, messages: nextChat }),
       });
       if (!res.ok || !res.body) throw new Error("Local model call failed.");
+      await streamAssistantReply(res);
+    } catch {
+      setChat((prev) => [...prev, { role: "assistant", content: "(Local model unavailable — is Ollama running?)" }]);
+    } finally {
+      setStreaming(false);
+    }
+  }
 
-      setChat((prev) => [...prev, { role: "assistant", content: "" }]);
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        setChat((prev) => {
-          const copy = [...prev];
-          copy[copy.length - 1] = { ...copy[copy.length - 1], content: copy[copy.length - 1].content + chunk };
-          return copy;
-        });
-      }
+  async function sendAudio(audio: { base64: string; format: string }) {
+    if (!note || streaming) return;
+    setChat((prev) => [...prev, { role: "user", content: "🎤 (voice message)" }]);
+    setStreaming(true);
+
+    const system = notesChatSystemPrompt(language, note.title, note.summary, note.keyConcepts);
+
+    try {
+      const res = await fetch("/api/llm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ routeTag: "audio", system, messages: chat, audio }),
+      });
+      if (!res.ok || !res.body) throw new Error("Local model call failed.");
+      await streamAssistantReply(res);
     } catch {
       setChat((prev) => [...prev, { role: "assistant", content: "(Local model unavailable — is Ollama running?)" }]);
     } finally {
@@ -242,6 +268,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           >
             Send
           </button>
+          <MicButton disabled={streaming} onRecorded={sendAudio} />
         </form>
       </div>
     </div>

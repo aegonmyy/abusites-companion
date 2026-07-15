@@ -2,6 +2,7 @@
 
 import { use, useEffect, useRef, useState } from "react";
 import MathText from "@/components/MathText";
+import MicButton from "@/components/MicButton";
 import { subunitTutorSystemPrompt, type Language } from "@/lib/prompts";
 
 type Subunit = {
@@ -73,6 +74,25 @@ export default function SyllabusPage({
     );
   }
 
+  async function streamAssistantReply(res: Response) {
+    setChat((prev) => [...prev, { role: "assistant", content: "" }]);
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      setChat((prev) => {
+        const copy = [...prev];
+        copy[copy.length - 1] = {
+          ...copy[copy.length - 1],
+          content: copy[copy.length - 1].content + chunk,
+        };
+        return copy;
+      });
+    }
+  }
+
   async function send() {
     if (!input.trim() || !activeSubunit || !syllabus || streaming) return;
     const userMsg: ChatMsg = { role: "user", content: input.trim() };
@@ -95,23 +115,34 @@ export default function SyllabusPage({
         body: JSON.stringify({ routeTag: "chat", system, messages: nextChat }),
       });
       if (!res.ok || !res.body) throw new Error("Local model call failed.");
+      await streamAssistantReply(res);
+    } catch {
+      setChat((prev) => [...prev, { role: "assistant", content: "(Local model unavailable — is Ollama running?)" }]);
+    } finally {
+      setStreaming(false);
+    }
+  }
 
-      setChat((prev) => [...prev, { role: "assistant", content: "" }]);
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        setChat((prev) => {
-          const copy = [...prev];
-          copy[copy.length - 1] = {
-            ...copy[copy.length - 1],
-            content: copy[copy.length - 1].content + chunk,
-          };
-          return copy;
-        });
-      }
+  async function sendAudio(audio: { base64: string; format: string }) {
+    if (!activeSubunit || !syllabus || streaming) return;
+    setChat((prev) => [...prev, { role: "user", content: "🎤 (voice message)" }]);
+    setStreaming(true);
+
+    const system = subunitTutorSystemPrompt(
+      language,
+      syllabus.topic,
+      activeSubunit.title,
+      activeSubunit.key_concepts,
+    );
+
+    try {
+      const res = await fetch("/api/llm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ routeTag: "audio", system, messages: chat, audio }),
+      });
+      if (!res.ok || !res.body) throw new Error("Local model call failed.");
+      await streamAssistantReply(res);
     } catch {
       setChat((prev) => [...prev, { role: "assistant", content: "(Local model unavailable — is Ollama running?)" }]);
     } finally {
@@ -240,6 +271,7 @@ export default function SyllabusPage({
                 >
                   Send
                 </button>
+                <MicButton disabled={streaming} onRecorded={sendAudio} />
               </form>
             </>
           )}
