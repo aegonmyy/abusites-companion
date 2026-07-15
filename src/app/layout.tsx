@@ -1,16 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 import NavBar from "@/components/NavBar";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
@@ -27,18 +16,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-    >
+    <html lang="en">
       {/* min-h-screen, not h-full: h-full on html/body with no percentage
           height chain above them collapses to zero (see brief's known bug
-          class), min-h-screen is viewport-relative and can't collapse. */}
-      <body className="min-h-screen flex flex-col">
+          class), min-h-screen is viewport-relative and can't collapse.
+          Shell is a column on mobile (top bar + content + fixed bottom nav)
+          and a row on md+ (left sidebar + content). */}
+      <body className="app-shell flex flex-col md:flex-row">
         <NavBar />
-        <main className="flex-1 w-full max-w-3xl mx-auto px-4 py-6">
-          {children}
-        </main>
+        <div className="flex-1 min-w-0 flex flex-col">
+          <main className="flex-1 w-full max-w-3xl mx-auto px-4 py-6 pb-24 md:pb-10">
+            {children}
+          </main>
+        </div>
         <ServiceWorkerRegister />
       </body>
     </html>
