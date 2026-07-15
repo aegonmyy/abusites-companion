@@ -1,6 +1,33 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Lists saved syllabi, newest first, in the shape Grinnish's ported
+ * StudyIntakeForm expects for its "Previous syllabi" chips:
+ * { id, topic, created_at, syllabus_json:{ topic, goal, units } }.
+ * The embedded syllabus_json carries topic + goal so the ported SyllabusView
+ * (which reads syllabus.topic) can be opened directly from the list without a
+ * second fetch.
+ */
+export async function GET() {
+  const rows = await prisma.studySyllabus.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+
+  const syllabi = rows.map((row) => ({
+    id: row.id,
+    topic: row.topic,
+    created_at: row.createdAt,
+    syllabus_json: {
+      topic: row.topic,
+      goal: row.goal,
+      units: JSON.parse(row.unitsJson),
+    },
+  }));
+
+  return NextResponse.json({ syllabi });
+}
+
 type SyllabusUnit = {
   unit_id: number;
   title: string;
