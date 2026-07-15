@@ -55,7 +55,7 @@ export default function QuestionOfDayCard() {
 
   if (!data) {
     return (
-      <div className="rounded-xl border border-black/10 dark:border-white/10 p-4 text-sm text-black/60 dark:text-white/60">
+      <div className="card p-5 text-sm muted">
         Loading question of the day…
       </div>
     );
@@ -65,7 +65,7 @@ export default function QuestionOfDayCard() {
     return (
       <div
         data-testid="qotd-empty"
-        className="rounded-xl border border-black/10 dark:border-white/10 p-4 text-sm text-black/60 dark:text-white/60"
+        className="card p-5 text-sm muted"
       >
         No question of the day yet — the past-questions catalog is empty on
         this machine. Once past questions are seeded, one will appear here
@@ -79,8 +79,8 @@ export default function QuestionOfDayCard() {
   const answered = data.answeredIndex != null;
 
   return (
-    <div data-testid="qotd-card" className="rounded-xl border border-black/10 dark:border-white/10 p-4 flex flex-col gap-3">
-      <div className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">
+    <div data-testid="qotd-card" className="card p-5 flex flex-col gap-3">
+      <div className="eyebrow">
         Question of the day
       </div>
       <MathText as="p" className="font-medium" text={q.questionText ?? q.title} />
@@ -94,12 +94,12 @@ export default function QuestionOfDayCard() {
               onClick={() => answer(i)}
               data-testid={`qotd-option-${i}`}
               className={
-                "text-left border rounded-lg px-3 py-2 text-sm " +
+                "option " +
                 (answered && i === q.correctIndex
-                  ? "border-green-500 bg-green-50 dark:bg-green-900/30"
+                  ? "option-correct"
                   : answered && i === chosen && i !== q.correctIndex
-                    ? "border-red-500 bg-red-50 dark:bg-red-900/30"
-                    : "border-black/10 dark:border-white/10 hover:border-black/30 dark:hover:border-white/30")
+                    ? "option-wrong"
+                    : "")
               }
             >
               <span className="font-mono mr-2">{OPTION_LABELS[i]}.</span>
@@ -109,7 +109,7 @@ export default function QuestionOfDayCard() {
         )}
       </div>
       {answered && q.explanation && (
-        <div data-testid="qotd-explanation" className="text-sm text-black/70 dark:text-white/70 border-t border-black/10 dark:border-white/10 pt-2">
+        <div data-testid="qotd-explanation" className="text-sm muted pt-3" style={{ borderTop: "1px solid var(--border)" }}>
           <MathText text={q.explanation} />
         </div>
       )}
