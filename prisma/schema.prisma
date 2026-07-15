@@ -1,0 +1,203 @@
+// Grinnish Local — Prisma schema (SQLite via better-sqlite3 driver adapter)
+// See prisma.config.ts for the datasource URL and generated client output.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ---------------------------------------------------------------------------
+// Catalog tables — mirror the five Supabase source tables (UUIDs as TEXT,
+// FKs preserved). Populated by scripts/fetch-seed-data.ts. Read-only at
+// runtime; the app never writes to these.
+// ---------------------------------------------------------------------------
+
+model University {
+  id         String       @id
+  name       String
+  country    String?
+  city       String?
+  createdAt  DateTime?    @map("created_at")
+  updatedAt  DateTime?    @map("updated_at")
+  faculties  Faculty[]
+  courses    Course[]
+
+  @@map("universities")
+}
+
+model Faculty {
+  id           String       @id
+  universityId String       @map("university_id")
+  name         String
+  createdAt    DateTime?    @map("created_at")
+  updatedAt    DateTime?    @map("updated_at")
+  university   University   @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  departments  Department[]
+
+  @@index([universityId])
+  @@map("faculties")
+}
+
+model Department {
+  id        String    @id
+  facultyId String    @map("faculty_id")
+  name      String
+  createdAt DateTime? @map("created_at")
+  updatedAt DateTime? @map("updated_at")
+  faculty   Faculty   @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  courses   Course[]
+
+  @@index([facultyId])
+  @@map("departments")
+}
+
+model Course {
+  id            String         @id
+  departmentId  String?        @map("department_id")
+  universityId  String?        @map("university_id")
+  code          String
+  title         String
+  createdAt     DateTime?      @map("created_at")
+  updatedAt     DateTime?      @map("updated_at")
+  department    Department?    @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  university    University?    @relation(fields: [universityId], references: [id], onDelete: SetNull)
+  pastQuestions PastQuestion[]
+
+  @@index([departmentId])
+  @@index([universityId])
+  @@map("courses")
+}
+
+model PastQuestion {
+  id            String    @id
+  courseId      String    @map("course_id")
+  title         String
+  year          Int?
+  questionText  String?   @map("question_text")
+  optionA       String?   @map("option_a")
+  optionB       String?   @map("option_b")
+  optionC       String?   @map("option_c")
+  optionD       String?   @map("option_d")
+  correctIndex  Int?      @map("correct_index")
+  explanation   String?
+  fileUrl       String?   @map("file_url")
+  createdAt     DateTime? @map("created_at")
+  updatedAt     DateTime? @map("updated_at")
+  course        Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@index([courseId, year])
+  @@map("past_questions")
+}
+
+// ---------------------------------------------------------------------------
+// Local app tables — no auth, single implicit local user throughout.
+// ---------------------------------------------------------------------------
+
+model Settings {
+  id        Int      @id @default(1)
+  language  String   @default("en") // "en" | "ha" | "mixed"
+  model     String   @default("gemma4:e2b")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}
+
+model StudyIntake {
+  id           String   @id @default(uuid())
+  topic        String
+  goal         String
+  studyMinutes Int      @map("study_minutes")
+  scenarioType String   @map("scenario_type")
+  scenario     String
+  createdAt    DateTime @default(now()) @map("created_at")
+  syllabi      StudySyllabus[]
+
+  @@map("study_intakes")
+}
+
+model StudySyllabus {
+  id         String       @id @default(uuid())
+  intakeId   String       @map("intake_id")
+  topic      String
+  goal       String
+  unitsJson  String       @map("units_json") // serialized syllabus tree
+  createdAt  DateTime     @default(now()) @map("created_at")
+  intake     StudyIntake  @relation(fields: [intakeId], references: [id], onDelete: Cascade)
+  progress   SubunitProgress[]
+
+  @@map("study_syllabi")
+}
+
+model SubunitProgress {
+  id          String        @id @default(uuid())
+  syllabusId  String        @map("syllabus_id")
+  subunitId   String        @map("subunit_id")
+  completed   Boolean       @default(false)
+  lastVisited DateTime?     @map("last_visited")
+  syllabus    StudySyllabus @relation(fields: [syllabusId], references: [id], onDelete: Cascade)
+
+  @@unique([syllabusId, subunitId])
+  @@map("subunit_progress")
+}
+
+model QuestionOfDay {
+  id            String    @id @default(uuid())
+  date          String    @unique // YYYY-MM-DD, local
+  pastQuestionId String?  @map("past_question_id")
+  answeredIndex Int?      @map("answered_index")
+  correct       Boolean?
+  answeredAt    DateTime? @map("answered_at")
+
+  @@map("questions_of_day")
+}
+
+model Streak {
+  id            Int      @id @default(1)
+  currentStreak Int      @default(0) @map("current_streak")
+  longestStreak Int      @default(0) @map("longest_streak")
+  lastActiveDate String? @map("last_active_date") // YYYY-MM-DD
+
+  @@map("streaks")
+}
+
+model Bookmark {
+  id        String   @id @default(uuid())
+  kind      String   // "past_question" | "note" | "subunit"
+  refId     String   @map("ref_id")
+  label     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([kind, refId])
+  @@map("bookmarks")
+}
+
+model Note {
+  id        String   @id @default(uuid())
+  title     String
+  sourceType String  @map("source_type") // "pdf" | "image" | "text"
+  rawText   String?  @map("raw_text")
+  summary   String?
+  keyConcepts String? @map("key_concepts") // JSON array
+  quizJson  String?  @map("quiz_json")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("notes")
+}
+
+model CbtAttempt {
+  id          String   @id @default(uuid())
+  courseId    String   @map("course_id")
+  questionIds String   @map("question_ids") // JSON array
+  answers     String?  // JSON map questionId -> chosenIndex
+  score       Int?
+  total       Int?
+  startedAt   DateTime @default(now()) @map("started_at")
+  finishedAt  DateTime? @map("finished_at")
+
+  @@map("cbt_attempts")
+}
