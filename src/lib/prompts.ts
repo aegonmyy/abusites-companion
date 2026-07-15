@@ -42,6 +42,7 @@ export function syllabusGenerationSystemPrompt(language: Language): string {
     "Given a study topic, goal, and available minutes, produce a compact syllabus as strict JSON only — no markdown fences, no prose outside the JSON, no fields beyond what's shown.",
     'Shape: {"units":[{"unit_id":1,"title":"...","subunits":[{"subunit_id":"1.1","title":"...","key_concepts":["...","..."]}]}]}',
     "Hard limit, must fit a short output budget: exactly 2-3 units, exactly 2 subunits per unit, exactly 2 short key_concepts per subunit (a few words each, not sentences). This is for a short study session, not a full course — terser is better than complete.",
+    "Plain text only inside every JSON string value: no LaTeX, no backslashes, no markdown. Spell things out (e.g. \"CO2\" not \"\\text{CO}_2\") — this must be valid JSON that a strict parser can read.",
   ].join("\n");
 }
 

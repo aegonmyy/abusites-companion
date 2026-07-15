@@ -3,6 +3,23 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+/**
+ * The model is told to avoid LaTeX/backslashes in JSON string values, but
+ * isn't 100% reliable about it (observed: "$\text{CO}_2$" inside a
+ * key_concepts string, an invalid JSON escape that breaks JSON.parse
+ * outright). Retry once with stray backslashes escaped before giving up —
+ * a lone backslash not followed by a valid JSON escape char (" \ / b f n r
+ * t u) is doubled so it round-trips as a literal backslash.
+ */
+function parseModelJson(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const repaired = raw.replace(/\\(?!["\\/bfnrtu])/g, "\\\\");
+    return JSON.parse(repaired);
+  }
+}
+
 const SCENARIOS = [
   { value: "quick-refresh", label: "Quick refresh" },
   { value: "practice-heavy", label: "Practice-heavy" },
@@ -79,7 +96,8 @@ export default function StudyIntakePage() {
 
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error("Model did not return a parseable syllabus.");
-      const parsed = JSON.parse(jsonMatch[0]);
+      const parsed = parseModelJson(jsonMatch[0]) as { units?: unknown };
+      if (!parsed.units) throw new Error("Model's syllabus JSON had no units.");
 
       const syllabusRes = await fetch("/api/study/syllabus", {
         method: "POST",
