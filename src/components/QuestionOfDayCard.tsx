@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import LoadingSpinner from "./LoadingSpinner";
 import MathText from "./MathText";
-import { qotdGlossSystemPrompt, type Language } from "@/lib/prompts";
+import { explainQuestionSystemPrompt, type Language } from "@/lib/prompts";
 
 type Question = {
   id: string;
@@ -75,7 +75,7 @@ export default function QuestionOfDayCard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           routeTag: "gloss",
-          system: qotdGlossSystemPrompt(language),
+          system: explainQuestionSystemPrompt(language),
           numPredictOverride: 220,
           messages: [{ role: "user", content: userContent }],
         }),

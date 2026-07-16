@@ -12,6 +12,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import MathText from "@/components/MathText";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { explainQuestionSystemPrompt, type Language } from "@/lib/prompts";
 
 const labels = ["A", "B", "C", "D"];
 
@@ -39,6 +41,10 @@ export default function QuestionsList({ questions, totalCount }: Props) {
     y: number;
     question: CourseQuestion;
   } | null>(null);
+  const [language, setLanguage] = useState<Language>("en");
+  const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
+  const [aiExplainLoadingId, setAiExplainLoadingId] = useState<string | null>(null);
+  const [aiExplainErrorId, setAiExplainErrorId] = useState<string | null>(null);
 
   const yearOptions = useMemo(() => {
     const years = Array.from(
@@ -46,6 +52,13 @@ export default function QuestionsList({ questions, totalCount }: Props) {
     ).sort((a, b) => b - a);
     return years;
   }, [questions]);
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((d) => setLanguage((d.language as Language) ?? "en"))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -146,6 +159,64 @@ export default function QuestionsList({ questions, totalCount }: Props) {
         next.delete(key);
         return next;
       });
+    }
+  };
+
+  const explainWithAi = async (question: CourseQuestion) => {
+    const key = String(question.id);
+    if (aiExplainLoadingId) return;
+    setAiExplainLoadingId(key);
+    setAiExplainErrorId(null);
+    setAiExplanations((prev) => ({ ...prev, [key]: "" }));
+    try {
+      const rawOptions = Array.isArray(question.options) ? question.options : [];
+      const optionsText = rawOptions
+        .map((opt, idx) => (opt ? `${labels[idx]}. ${opt}` : null))
+        .filter(Boolean)
+        .join("\n");
+      const answerIndex = Number.isFinite(Number(question.answer)) ? Number(question.answer) : null;
+      const correctLabel = answerIndex != null ? labels[answerIndex] ?? "Unknown" : "Unknown";
+      const userContent = [
+        `Question: ${question.question_text ?? ""}`,
+        `Options:\n${optionsText}`,
+        `Correct option: ${correctLabel}`,
+        question.details ? `Static explanation already shown: ${question.details}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
+      const res = await fetch("/api/llm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          routeTag: "gloss",
+          system: explainQuestionSystemPrompt(language),
+          numPredictOverride: 220,
+          messages: [{ role: "user", content: userContent }],
+        }),
+      });
+      if (!res.ok || !res.body) throw new Error("Local model call failed.");
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let assembled = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        if (chunk) {
+          assembled += chunk;
+          setAiExplanations((prev) => ({ ...prev, [key]: assembled }));
+        }
+      }
+      if (!assembled.trim()) throw new Error("Local model unavailable — is Ollama running?");
+    } catch (err) {
+      setAiExplainErrorId(key);
+      setAiExplanations((prev) => ({
+        ...prev,
+        [key]: err instanceof Error ? err.message : "Could not get an AI explanation.",
+      }));
+    } finally {
+      setAiExplainLoadingId(null);
     }
   };
 
@@ -278,6 +349,15 @@ export default function QuestionsList({ questions, totalCount }: Props) {
                       >
                         {bookmarkedIds.has(String(question.id)) ? "Bookmarked" : "Bookmark"}
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => explainWithAi(question)}
+                        disabled={aiExplainLoadingId === String(question.id)}
+                        data-testid={`pq-${question.id}-explain-ai-button`}
+                        className="rounded-full border border-white/20 px-4 py-1.5 text-xs font-semibold text-white/70 transition hover:border-white/40 hover:text-white disabled:opacity-60"
+                      >
+                        {aiExplainLoadingId === String(question.id) ? "Explaining…" : "Explain with AI"}
+                      </button>
                       <span className="text-xs uppercase tracking-[0.2em] text-white/40">
                         {completedIds.has(String(question.id)) ? "Completed" : "Pending"}
                       </span>
@@ -294,6 +374,26 @@ export default function QuestionsList({ questions, totalCount }: Props) {
                         ) : null}
                       </div>
                     </details>
+                    {(aiExplanations[String(question.id)] || aiExplainLoadingId === String(question.id)) && (
+                      <div
+                        data-testid={`pq-${question.id}-explanation-ai`}
+                        className="mt-3 rounded-xl border border-emerald-300/20 bg-emerald-500/5 p-3 text-sm text-white/80"
+                      >
+                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300/80">
+                          AI explanation
+                        </p>
+                        {aiExplainLoadingId === String(question.id) && !aiExplanations[String(question.id)] ? (
+                          <p className="flex items-center gap-2 text-xs text-white/50">
+                            <LoadingSpinner size={14} label="Thinking" />
+                            Asking the local model…
+                          </p>
+                        ) : aiExplainErrorId === String(question.id) ? (
+                          <p className="text-xs text-rose-300">{aiExplanations[String(question.id)]}</p>
+                        ) : (
+                          <MathText text={aiExplanations[String(question.id)]} />
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}

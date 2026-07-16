@@ -62,12 +62,14 @@ export function syllabusGenerationSystemPrompt(language: Language): string {
 }
 
 /**
- * QOTD's on-demand "Explain with AI" call (routeTag "gloss", streamed) — a
- * live alternative to the static pre-written `explanation` text already
- * baked into the seeded question data. Mirrors the intent of Grinnish's real
- * "Explain this" feature (a floating chat widget that called a cloud model
- * for a live explanation on QOTD/CBT/past-questions/bookmarks), but scoped
- * to this component rather than recreated as a global widget — that
+ * Shared on-demand "Explain with AI" call (routeTag "gloss", streamed) for
+ * any multiple-choice question with a known correct answer — used by both
+ * QuestionOfDayCard and past-questions' QuestionsList. A live alternative to
+ * the static pre-written `explanation`/`details` text already baked into
+ * the seeded question data. Mirrors the intent of Grinnish's real "Explain
+ * this" feature (a floating chat widget that called a cloud model for a
+ * live explanation on QOTD/CBT/past-questions/bookmarks), but scoped to
+ * each calling component rather than recreated as a global widget — that
  * mechanism was bundled with human support-ticket functionality this
  * no-accounts app deliberately doesn't have. Takes the model past a bare
  * "why is this correct" gloss: it's told what the static explanation
@@ -75,7 +77,7 @@ export function syllabusGenerationSystemPrompt(language: Language): string {
  * wrong options are wrong, or a different way to think about it — rather
  * than restating it.
  */
-export function qotdGlossSystemPrompt(language: Language): string {
+export function explainQuestionSystemPrompt(language: Language): string {
   return [
     BASE,
     languageLine(language),
