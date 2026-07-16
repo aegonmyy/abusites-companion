@@ -1,4 +1,13 @@
 /**
+ * MAINTAINER-ONLY. Not part of the default setup path and never invoked by
+ * it — a normal cloned repo gets its full catalog from the git-committed
+ * static bundle (`scripts/seed-from-bundle.ts`, run by `npm run seed`)
+ * with zero credentials. This script exists purely so a maintainer with
+ * real Supabase credentials can refresh that bundle from the live source
+ * periodically — see the README section "Refreshing the bundled seed
+ * data": run this, then `npm run seed:export-bundle`, then commit the
+ * updated `prisma/seed-bundle/catalog.json`.
+ *
  * One-time, direct-Postgres reseed for tables that come back empty through
  * the anon-key REST path (`scripts/fetch-seed-data.ts`) due to Row Level
  * Security: universities, faculties, departments, and past questions.

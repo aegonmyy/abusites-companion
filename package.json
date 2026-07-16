@@ -10,7 +10,10 @@
     "postinstall": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "seed": "tsx scripts/fetch-seed-data.ts",
+    "seed": "tsx scripts/seed-from-bundle.ts",
+    "seed:bundle": "tsx scripts/seed-from-bundle.ts",
+    "seed:export-bundle": "tsx scripts/export-seed-bundle.ts",
+    "seed:from-supabase": "tsx scripts/fetch-seed-data.ts",
     "eval:hausa": "tsx scripts/hausa-eval.ts"
   },
   "dependencies": {

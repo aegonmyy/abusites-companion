@@ -61,24 +61,10 @@ npm install
 
 Info "Ensuring local SQLite schema exists..."
 New-Item -ItemType Directory -Force -Path data | Out-Null
-if (-not (Test-Path "data\grinnish.db")) {
-  npx prisma migrate deploy
-  if ((Test-Path ".env") -and (Select-String -Path ".env" -Pattern "SUPABASE_URL" -Quiet)) {
-    Warn "Supabase seed credentials found in .env."
-    $reply = Read-Host "Run the one-time catalog seed now? [y/N]"
-    if ($reply -match "^[Yy]$") {
-      npm run seed
-    }
-  } else {
-    Warn "No data\grinnish.db and no seed credentials in .env -- the app will run"
-    Warn "with an empty course/past-questions catalog. If you received a"
-    Warn "pre-populated data\grinnish.db alongside this app, copy it into"
-    Warn ".\data\ before running this script again."
-  }
-} else {
-  Info "data\grinnish.db already exists -- applying any pending migrations, not re-seeding."
-  npx prisma migrate deploy
-}
+npx prisma migrate deploy
+
+Info "Seeding the local catalog from the bundled dataset (no credentials, no network)..."
+npm run seed
 
 Info "Building production bundle..."
 npm run build

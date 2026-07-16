@@ -6,13 +6,12 @@
 #   2. Checks Ollama is installed and reachable; pulls the shipped model
 #      (gemma4:e2b) if it isn't already present locally.
 #   3. npm install (this also runs `prisma generate` via postinstall).
-#   4. Creates/updates the local SQLite schema (prisma migrate deploy).
-#      If data/grinnish.db doesn't exist yet AND Supabase seed
-#      credentials are present in .env, offers to run the one-time catalog
-#      seed. Most end users won't have those credentials and don't need
-#      to — the intended distribution path ships data/grinnish.db
-#      pre-populated alongside the app; this step only creates an empty
-#      schema as a fallback so the app doesn't crash on first run.
+#   4. Creates/updates the local SQLite schema (prisma migrate deploy), then
+#      seeds the course/past-questions catalog from the static bundle
+#      committed at prisma/seed-bundle/catalog.json (`npm run seed`). This
+#      needs no credentials and no network access — it's plain JSON already
+#      in the repo — so it always runs, unconditionally, on every setup.
+#      Seeding upserts by id, so it's idempotent and safe on repeat runs.
 #   5. Production build (npm run build).
 #
 # After this finishes: `npm start`, then open http://localhost:3000.
@@ -67,24 +66,10 @@ npm install
 
 info "Ensuring local SQLite schema exists…"
 mkdir -p data
-if [ ! -f data/grinnish.db ]; then
-  npx prisma migrate deploy
-  if [ -f .env ] && grep -q "SUPABASE_URL" .env 2>/dev/null; then
-    warn "Supabase seed credentials found in .env."
-    read -r -p "Run the one-time catalog seed now? [y/N] " REPLY
-    if [[ "$REPLY" =~ ^[Yy]$ ]]; then
-      npm run seed
-    fi
-  else
-    warn "No data/grinnish.db and no seed credentials in .env — the app will run"
-    warn "with an empty course/past-questions catalog. If you received a"
-    warn "pre-populated data/grinnish.db alongside this app, copy it into"
-    warn "./data/ before running this script again."
-  fi
-else
-  info "data/grinnish.db already exists — applying any pending migrations, not re-seeding."
-  npx prisma migrate deploy
-fi
+npx prisma migrate deploy
+
+info "Seeding the local catalog from the bundled dataset (no credentials, no network)…"
+npm run seed
 
 info "Building production bundle…"
 npm run build

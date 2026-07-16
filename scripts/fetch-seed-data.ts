@@ -1,14 +1,24 @@
 /**
- * Setup-time-only seed script. Pulls the five catalog tables from the
- * reference Supabase project and upserts them into the local SQLite DB by
- * id (idempotent — safe to re-run).
+ * MAINTAINER-ONLY. Not part of the default setup path — a normal cloned
+ * repo never needs Supabase credentials and never runs this. The default
+ * `npm run seed` now runs `scripts/seed-from-bundle.ts`, which loads the
+ * git-committed static bundle at `prisma/seed-bundle/catalog.json` with
+ * zero credentials and zero network calls.
+ *
+ * Pulls the five catalog tables from the reference Supabase project (anon
+ * key — note this can only actually read the `courses` table; RLS blocks
+ * anon reads on the rest, see `reseed-direct.ts` for the superuser-backed
+ * path around that) and upserts them into the local SQLite DB by id
+ * (idempotent — safe to re-run). Used only when a maintainer with real
+ * Supabase credentials wants to refresh the bundled seed data — see the
+ * README section "Refreshing the bundled seed data".
  *
  * This is the ONLY place in the codebase allowed to import
  * @supabase/supabase-js or read SUPABASE_URL / SUPABASE_ANON_KEY. No app
  * runtime code path may depend on Supabase — the app is offline-first and
  * ships with data already materialized in SQLite.
  *
- * Usage: npm run seed
+ * Usage (maintainer only): npm run seed:from-supabase
  */
 import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";

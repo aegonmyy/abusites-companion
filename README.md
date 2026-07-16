@@ -106,21 +106,43 @@ your platform):
 ```bash
 ollama pull gemma4:e2b
 npm install                 # runs `prisma generate` via postinstall
-npx prisma migrate deploy   # creates data/grinnish.db with an empty schema
+npx prisma migrate deploy   # creates data/grinnish.db with the schema
+npm run seed                # loads the full catalog from the bundled dataset
 npm run build
 npm start
 ```
 
-### Re-seeding the catalog (maintainers only)
+`npm run seed` reads the static, git-committed bundle at
+`prisma/seed-bundle/catalog.json` and upserts it into local SQLite by id.
+It needs **no environment variables, no network access, and no
+credentials** — the data is already in the repo. It's idempotent (safe to
+re-run) and this is what `setup.sh`/`setup.ps1` run automatically, so a
+normal clone-and-setup gets the full real course/past-questions catalog
+(2 universities, 3 faculties, 8 departments, 81 courses, ~6.8k past
+questions) with zero configuration.
 
-The courses/past-questions catalog (`data/grinnish.db`) is populated once
-from the reference Supabase project and then shipped/copied as a file —
-end users never need Supabase credentials. To re-seed:
+### Refreshing the bundled seed data (maintainers only)
+
+The bundle (`prisma/seed-bundle/catalog.json`) is a point-in-time snapshot
+of the reference Supabase project. It's committed to the repo so end users
+never need Supabase credentials at all. Only a maintainer with real
+credentials to the source project needs to touch the scripts below, and
+only when the source data has changed and the bundle needs refreshing:
 
 ```bash
-cp .env.example .env   # fill in SUPABASE_URL / SUPABASE_ANON_KEY
-npm run seed
+cp .env.example .env    # fill in SUPABASE_URL / SUPABASE_ANON_KEY / DIRECT_DB_URL
+npm run seed:from-supabase   # pulls what the anon key can read (courses only; RLS blocks the rest)
+npx tsx scripts/reseed-direct.ts   # direct-Postgres, RLS-bypassing pull for the remaining tables
+npm run seed:export-bundle   # re-exports local SQLite -> prisma/seed-bundle/catalog.json
+git add prisma/seed-bundle/catalog.json
+git commit -m "chore: refresh seed bundle"
 ```
+
+`DIRECT_DB_URL` is a real database superuser credential — keep it out of
+git (`.env` is gitignored) and never add it to `.env.example` or any
+distributed artifact. `scripts/fetch-seed-data.ts` and
+`scripts/reseed-direct.ts` are maintainer-only tools; no app runtime path
+and no part of `setup.sh`/`setup.ps1`/`npm run seed` ever invokes them.
 
 ## Development
 
@@ -154,15 +176,6 @@ npm run eval:hausa
 
 ## Known limitations / open items
 
-- **Catalog coverage**: of the five seeded tables, only `courses` (81 rows)
-  is confirmed populated from the reference Supabase project;
-  `universities`/`faculties`/`departments`/`past_questions` read back empty
-  for the anon key used at seed time, and it isn't possible from the
-  client side to tell "RLS is blocking this" from "this table is
-  genuinely empty" — flagged to the project owner rather than worked
-  around. Practical effect: past-questions/CBT and QOTD are fully wired
-  and tested, but there's no actual past-question content yet, so they
-  correctly show an empty state.
 - **Hausa UI text**: model-generated content (syllabus, tutor chat, note
   summaries/quizzes) fully respects the Hausa/mixed language setting. The
   static UI chrome (buttons, page headers) only has a partial,
