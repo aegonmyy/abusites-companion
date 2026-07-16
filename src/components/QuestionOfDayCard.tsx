@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import LoadingSpinner from "./LoadingSpinner";
 import MathText from "./MathText";
 
 type Question = {
@@ -59,7 +60,8 @@ export default function QuestionOfDayCard() {
 
   if (!data) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70 shadow-xl backdrop-blur">
+      <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70 shadow-xl backdrop-blur">
+        <LoadingSpinner size={18} label="Loading" />
         Loading question of the day…
       </div>
     );

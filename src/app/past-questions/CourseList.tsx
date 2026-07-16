@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import QuestionsList, { type CourseQuestion } from "./QuestionsList";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export type CourseSummary = {
   id: string;
@@ -78,7 +79,8 @@ function LoadingState({ course }: { course: CourseSummary | null }) {
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-full border-2 border-cyan-200/20 border-t-cyan-200 animate-spin" />
             <div className="text-right">
-              <p className="text-xs uppercase tracking-[0.3em] text-cyan-100/60">
+              <p className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-cyan-100/60">
+                <LoadingSpinner size={16} label="Loading" />
                 Loading
               </p>
             </div>
@@ -267,7 +269,10 @@ export default function CourseList({ courses }: Props) {
                     <p className="text-sm text-cyan-100/70">
                       {courseData?.course.code ?? selectedCourse?.code ?? "Past Questions"}
                     </p>
-                    <h2 className="mt-1 text-2xl font-semibold text-white sm:text-3xl">
+                    <h2 className="mt-1 flex items-center gap-3 text-2xl font-semibold text-white sm:text-3xl">
+                      {!courseData?.course.title && !selectedCourse?.title ? (
+                        <LoadingSpinner size={20} label="Loading" />
+                      ) : null}
                       {courseData?.course.title ?? selectedCourse?.title ?? "Loading course"}
                     </h2>
                   </div>

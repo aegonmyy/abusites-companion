@@ -166,7 +166,10 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     <div className="min-h-screen px-6 py-12">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-5" data-testid="note-detail-page">
         {!note ? (
-          <p className="text-sm text-white/70">Loading note…</p>
+          <p className="flex items-center gap-3 text-sm text-white/70">
+            <LoadingSpinner size={18} label="Loading" />
+            Loading note…
+          </p>
         ) : (
           <>
             <div className="flex items-start justify-between gap-4">

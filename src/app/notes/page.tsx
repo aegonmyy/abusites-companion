@@ -8,6 +8,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 type NoteSummary = {
   id: string;
@@ -62,7 +63,8 @@ export default function NotesPage() {
 
         <div className="mt-8">
           {!notes ? (
-            <div className="rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70">
+            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70">
+              <LoadingSpinner size={18} label="Loading" />
               Loading…
             </div>
           ) : notes.length === 0 ? (

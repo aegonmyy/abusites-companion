@@ -13,6 +13,7 @@ import { useSearchParams } from "next/navigation";
 import SyllabusView from "./SyllabusView";
 import { parseModelJson } from "@/lib/parse-model-json";
 import FullPageLoader from "@/components/FullPageLoader";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 type SyllabusEntry = {
   id: string;
@@ -211,7 +212,10 @@ export default function StudyIntakeForm() {
   if (hydrating) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-white/70">
-        <p className="text-sm">Loading your saved syllabi...</p>
+        <p className="flex items-center gap-3 text-sm">
+          <LoadingSpinner size={18} label="Loading" />
+          Loading your saved syllabi...
+        </p>
       </div>
     );
   }

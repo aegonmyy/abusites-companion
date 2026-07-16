@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import CourseList, { type CourseSummary } from "./CourseList";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 // Ported from Grinnish's app/past-questions/page.tsx. Server + Supabase data
 // load becomes a client fetch of the local /api/past-questions/courses. Auth
@@ -36,7 +37,8 @@ export default function PastQuestionsPage() {
         </header>
 
         {!courses ? (
-          <div className="mt-8 rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70">
+          <div className="mt-8 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70">
+            <LoadingSpinner size={18} label="Loading" />
             Loading courses…
           </div>
         ) : courses.length === 0 ? (

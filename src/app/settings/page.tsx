@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 // Settings has no Grinnish equivalent (the hosted app kept language in the
 // account/profile). The target's local language setting is kept as-is and
@@ -80,7 +81,10 @@ export default function SettingsPage() {
         </header>
 
         {loading ? (
-          <p className="mt-8 text-sm text-white/70">Loading settings…</p>
+          <p className="mt-8 flex items-center gap-3 text-sm text-white/70">
+            <LoadingSpinner size={18} label="Loading" />
+            Loading settings…
+          </p>
         ) : (
           <div className="mt-8 flex flex-col gap-6">
             <fieldset className="flex flex-col gap-3">

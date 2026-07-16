@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import CbtClient from "./CbtClient";
 
 // Ported from Grinnish's app/cbt/[courseId]/page.tsx (header + layout). The
@@ -93,7 +94,8 @@ export default function CbtPage({
             Course not found.
           </div>
         ) : !course || !questions ? (
-          <div className="mt-8 rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70">
+          <div className="mt-8 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70">
+            <LoadingSpinner size={18} label="Loading" />
             Loading…
           </div>
         ) : (

@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import SyllabusView from "../../SyllabusView";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 // Deep-link / re-open route for a saved syllabus. Loads the syllabus from the
 // local API and hands its JSON to the ported SyllabusView (single component
@@ -41,7 +42,10 @@ export default function SyllabusPage({
         {notFound ? (
           <p className="text-sm text-white/70">Syllabus not found.</p>
         ) : !raw ? (
-          <p className="text-sm text-white/70">Loading syllabus…</p>
+          <p className="flex items-center gap-3 text-sm text-white/70">
+            <LoadingSpinner size={18} label="Loading" />
+            Loading syllabus…
+          </p>
         ) : (
           <SyllabusView raw={raw} syllabusId={id} />
         )}
