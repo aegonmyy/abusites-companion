@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseModelJson } from "@/lib/parse-model-json";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 type ParsedNote = {
   summary?: string;
@@ -327,8 +328,9 @@ export default function NewNotePage() {
                   type="submit"
                   disabled={busy}
                   data-testid="generate-note-button"
-                  className="w-full rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 disabled:opacity-60"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 disabled:opacity-60"
                 >
+                  {busy && <LoadingSpinner size={16} className="text-slate-900" label="Working" />}
                   {status === "extracting"
                     ? "Reading PDF…"
                     : status === "generating"

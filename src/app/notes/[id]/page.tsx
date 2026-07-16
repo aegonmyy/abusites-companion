@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import MathText from "@/components/MathText";
 import MicButton from "@/components/MicButton";
 import SendGlyph from "@/components/SendGlyph";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import { notesChatSystemPrompt, type Language } from "@/lib/prompts";
 
 type QuizQuestion = {
@@ -83,8 +84,15 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     router.push("/notes");
   }
 
+  // Fills the already-pushed trailing empty assistant bubble as chunks
+  // arrive. The bubble itself is pushed by the caller *before* the fetch
+  // starts (not here) — this route's fetch() promise doesn't resolve until
+  // Ollama already has a token ready (measured: headers and first body
+  // chunk arrive within ~3ms of each other), so if the placeholder were
+  // pushed only after fetch resolved, the "empty" state — and the loading
+  // spinner it shows — would never be visible; the real wait (often 1s+)
+  // would render nothing at all instead.
   async function streamAssistantReply(res: Response) {
-    setChat((prev) => [...prev, { role: "assistant", content: "" }]);
     const reader = res.body!.getReader();
     const decoder = new TextDecoder();
     for (;;) {
@@ -99,11 +107,19 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     }
   }
 
+  function replaceLastAssistant(content: string) {
+    setChat((prev) => {
+      const copy = [...prev];
+      copy[copy.length - 1] = { ...copy[copy.length - 1], content };
+      return copy;
+    });
+  }
+
   async function send() {
     if (!input.trim() || !note || streaming) return;
     const userMsg: ChatMsg = { role: "user", content: input.trim() };
     const nextChat = [...chat, userMsg];
-    setChat(nextChat);
+    setChat([...nextChat, { role: "assistant", content: "" }]);
     setInput("");
     setStreaming(true);
 
@@ -118,7 +134,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
       if (!res.ok || !res.body) throw new Error("Local model call failed.");
       await streamAssistantReply(res);
     } catch {
-      setChat((prev) => [...prev, { role: "assistant", content: "(Local model unavailable — is Ollama running?)" }]);
+      replaceLastAssistant("(Local model unavailable — is Ollama running?)");
     } finally {
       setStreaming(false);
     }
@@ -126,7 +142,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
 
   async function sendAudio(audio: { base64: string; format: string }) {
     if (!note || streaming) return;
-    setChat((prev) => [...prev, { role: "user", content: "🎤 (voice message)" }]);
+    setChat((prev) => [...prev, { role: "user", content: "🎤 (voice message)" }, { role: "assistant", content: "" }]);
     setStreaming(true);
 
     const system = notesChatSystemPrompt(language, note.title, note.summary, note.keyConcepts);
@@ -140,7 +156,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
       if (!res.ok || !res.body) throw new Error("Local model call failed.");
       await streamAssistantReply(res);
     } catch {
-      setChat((prev) => [...prev, { role: "assistant", content: "(Local model unavailable — is Ollama running?)" }]);
+      replaceLastAssistant("(Local model unavailable — is Ollama running?)");
     } finally {
       setStreaming(false);
     }
@@ -259,7 +275,11 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                       m.role === "user" ? "self-end bg-white/15 text-white" : "self-start bg-white/5 text-white/80"
                     }`}
                   >
-                    <MathText text={m.content} />
+                    {m.role === "assistant" && !m.content ? (
+                      <LoadingSpinner size={18} label="Thinking" />
+                    ) : (
+                      <MathText text={m.content} />
+                    )}
                   </div>
                 ))}
                 <div ref={bottomRef} />

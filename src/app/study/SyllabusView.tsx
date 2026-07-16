@@ -20,6 +20,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { subunitTutorSystemPrompt, type Language } from "@/lib/prompts";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 type Syllabus = {
   topic: string;
@@ -571,11 +572,7 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
                         {message.content}
                       </ReactMarkdown>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-white/60">
-                        <span className="h-2 w-2 animate-bounce rounded-full bg-white/40 [animation-delay:0ms]" />
-                        <span className="h-2 w-2 animate-bounce rounded-full bg-white/40 [animation-delay:150ms]" />
-                        <span className="h-2 w-2 animate-bounce rounded-full bg-white/40 [animation-delay:300ms]" />
-                      </span>
+                      <LoadingSpinner size={18} label="Thinking" />
                     )
                   ) : (
                     message.content || "…"

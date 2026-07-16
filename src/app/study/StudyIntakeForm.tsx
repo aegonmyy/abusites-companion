@@ -11,6 +11,7 @@
 import { useEffect, useState } from "react";
 import SyllabusView from "./SyllabusView";
 import { parseModelJson } from "@/lib/parse-model-json";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 type SyllabusEntry = {
   id: string;
@@ -216,37 +217,8 @@ export default function StudyIntakeForm() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-6 backdrop-blur">
           <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/10 p-6 text-white shadow-2xl backdrop-blur">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full border border-white/20 p-2 text-white/80">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  viewBox="0 0 32 32"
-                  role="img"
-                  aria-label="Sending"
-                >
-                  <defs>
-                    <linearGradient id="liquidGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#38BDF8" />
-                      <stop offset="100%" stopColor="#10B981" />
-                    </linearGradient>
-                    <mask id="liquidMask">
-                      <circle cx="16" cy="16" r="12" fill="white" />
-                    </mask>
-                  </defs>
-                  <circle cx="16" cy="16" r="12" stroke="currentColor" strokeWidth="2" fill="none" />
-                  <g mask="url(#liquidMask)">
-                    <rect x="0" y="32" width="32" height="32" fill="url(#liquidGrad)">
-                      <animateTransform
-                        attributeName="transform"
-                        type="translate"
-                        from="0 0"
-                        to="0 -32"
-                        dur="1.6s"
-                        repeatCount="indefinite"
-                      />
-                    </rect>
-                  </g>
-                </svg>
+              <div className="h-10 w-10 rounded-full border border-white/20 p-2 text-white/80 flex items-center justify-center">
+                <LoadingSpinner size={20} label="Generating syllabus" />
               </div>
               <div>
                 <p className="text-sm font-semibold">Generating syllabus</p>
