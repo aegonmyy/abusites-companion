@@ -20,26 +20,44 @@ const LANGUAGE_OPTIONS: { value: Language; label: string; hint: string }[] = [
   },
 ];
 
+// Same safe ranges enforced server-side in /api/settings — kept in sync by
+// hand since this is a small, stable pair of constants (not worth a shared
+// module for two numbers).
+const TEMPERATURE_DEFAULT = 0.6; // matches the "chat" route default in ollama.ts
+const TOKEN_BUDGET_DEFAULT = 200; // matches the "chat" route default in ollama.ts
+const TEMPERATURE_MIN = 0;
+const TEMPERATURE_MAX = 1;
+const TOKEN_BUDGET_MIN = 80;
+const TOKEN_BUDGET_MAX = 500;
+
 export default function SettingsPage() {
   const [language, setLanguage] = useState<Language>("en");
+  const [temperature, setTemperature] = useState(TEMPERATURE_DEFAULT);
+  const [tokenBudget, setTokenBudget] = useState(TOKEN_BUDGET_DEFAULT);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((d) => setLanguage((d.language as Language) ?? "en"))
+      .then((d) => {
+        setLanguage((d.language as Language) ?? "en");
+        setTemperature(typeof d.temperature === "number" ? d.temperature : TEMPERATURE_DEFAULT);
+        setTokenBudget(typeof d.tokenBudget === "number" ? d.tokenBudget : TOKEN_BUDGET_DEFAULT);
+      })
       .finally(() => setLoading(false));
   }, []);
 
-  async function save(next: Language) {
+  async function save(next: Partial<{ language: Language; temperature: number; tokenBudget: number }>) {
     setSaving(true);
-    setLanguage(next);
+    if (next.language !== undefined) setLanguage(next.language);
+    if (next.temperature !== undefined) setTemperature(next.temperature);
+    if (next.tokenBudget !== undefined) setTokenBudget(next.tokenBudget);
     try {
       await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ language: next }),
+        body: JSON.stringify(next),
       });
     } finally {
       setSaving(false);
@@ -74,10 +92,8 @@ export default function SettingsPage() {
                 return (
                   <label
                     key={opt.value}
-                    className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-4 shadow-xl backdrop-blur transition ${
-                      active
-                        ? "border-emerald-300/50 bg-white/15"
-                        : "border-white/10 bg-white/10 hover:border-white/30"
+                    className={`card-deep flex cursor-pointer items-start gap-3 rounded-2xl border p-4 shadow-xl backdrop-blur transition ${
+                      active ? "border-emerald-300/50" : "border-white/10 hover:border-white/30"
                     }`}
                   >
                     <input
@@ -85,7 +101,7 @@ export default function SettingsPage() {
                       name="language"
                       value={opt.value}
                       checked={active}
-                      onChange={() => save(opt.value)}
+                      onChange={() => save({ language: opt.value })}
                       className="mt-1 h-4 w-4 accent-emerald-400"
                       data-testid={`language-${opt.value}`}
                     />
@@ -98,7 +114,57 @@ export default function SettingsPage() {
               })}
             </fieldset>
 
-            <div className="rounded-2xl border border-white/10 bg-white/10 p-4 text-sm text-white/70 shadow-xl backdrop-blur">
+            <fieldset className="card-deep flex flex-col gap-5 rounded-2xl border border-white/10 p-4 shadow-xl backdrop-blur">
+              <legend className="mb-1 text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
+                Response tuning
+              </legend>
+              <p className="-mt-3 text-xs text-white/50">
+                Applies to the tutor, chat, and voice replies. Note generation and
+                syllabus generation stay fixed for reliability.
+              </p>
+
+              <label className="flex flex-col gap-2">
+                <span className="flex items-center justify-between text-sm font-semibold text-white/90">
+                  Response creativity
+                  <span className="font-mono text-xs text-white/60">{temperature.toFixed(2)}</span>
+                </span>
+                <input
+                  type="range"
+                  min={TEMPERATURE_MIN}
+                  max={TEMPERATURE_MAX}
+                  step={0.05}
+                  value={temperature}
+                  onChange={(e) => save({ temperature: Number(e.target.value) })}
+                  className="w-full accent-emerald-400"
+                  data-testid="temperature-slider"
+                />
+                <span className="text-xs text-white/50">
+                  Lower = more predictable and to-the-point. Higher = more varied phrasing.
+                </span>
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="flex items-center justify-between text-sm font-semibold text-white/90">
+                  Response length
+                  <span className="font-mono text-xs text-white/60">{tokenBudget} tokens</span>
+                </span>
+                <input
+                  type="range"
+                  min={TOKEN_BUDGET_MIN}
+                  max={TOKEN_BUDGET_MAX}
+                  step={10}
+                  value={tokenBudget}
+                  onChange={(e) => save({ tokenBudget: Number(e.target.value) })}
+                  className="w-full accent-emerald-400"
+                  data-testid="token-budget-slider"
+                />
+                <span className="text-xs text-white/50">
+                  Shorter replies come back faster on slower hardware.
+                </span>
+              </label>
+            </fieldset>
+
+            <div className="card-deep rounded-2xl border border-white/10 p-4 text-sm text-white/70 shadow-xl backdrop-blur">
               Model:{" "}
               <span className="font-mono text-white">gemma4:e2b</span> (fixed for
               this build — the larger e4b variant is only ever enabled after

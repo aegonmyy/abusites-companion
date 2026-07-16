@@ -64,6 +64,11 @@ export type OllamaChatRequest = {
   messages: ChatMessage[];
   model?: string;
   numPredictOverride?: number;
+  /** User-configurable temperature override (Settings -> "Response
+   * creativity"), already clamped to [0, 1] by the caller. Callers must
+   * never pass this for the "json" route — see NUM_PREDICT/TEMPERATURE doc
+   * comments above for why structural JSON reliability stays fixed. */
+  temperatureOverride?: number;
 };
 
 /**
@@ -77,7 +82,14 @@ export async function ollamaChatStream({
   messages,
   model,
   numPredictOverride,
+  temperatureOverride,
 }: OllamaChatRequest): Promise<Response> {
+  // "json" is deliberately never overridable from Settings — low temperature
+  // there is what keeps small-model syllabus/note/prereq JSON parseable (see
+  // docs/AUDIO_FINDING.md sibling fix, "Force valid JSON at the decoder").
+  const temperature = routeTag === "json" ? TEMPERATURE.json : temperatureOverride ?? TEMPERATURE[routeTag];
+  const numPredict = routeTag === "json" ? NUM_PREDICT.json : numPredictOverride ?? NUM_PREDICT[routeTag];
+
   const body = {
     model: model ?? DEFAULT_MODEL,
     messages,
@@ -91,8 +103,8 @@ export async function ollamaChatStream({
     ...(routeTag === "json" ? { format: "json" as const } : {}),
     options: {
       num_ctx: NUM_CTX,
-      num_predict: numPredictOverride ?? NUM_PREDICT[routeTag],
-      temperature: TEMPERATURE[routeTag],
+      num_predict: numPredict,
+      temperature,
     },
   };
 
@@ -119,6 +131,8 @@ export type AudioChatRequest = {
   history: ChatMessage[];
   audio: { base64: string; format: string };
   model?: string;
+  numPredictOverride?: number;
+  temperatureOverride?: number;
 };
 
 /**
@@ -146,6 +160,8 @@ export async function ollamaChatAudioStream({
   history,
   audio,
   model,
+  numPredictOverride,
+  temperatureOverride,
 }: AudioChatRequest): Promise<Response> {
   const messages = [
     ...(system ? [{ role: "system", content: system }] : []),
@@ -162,7 +178,8 @@ export async function ollamaChatAudioStream({
     model: model ?? DEFAULT_MODEL,
     messages,
     stream: true,
-    max_tokens: NUM_PREDICT.audio,
+    max_tokens: numPredictOverride ?? NUM_PREDICT.audio,
+    temperature: temperatureOverride ?? TEMPERATURE.audio,
   };
 
   const response = await fetch(`${OLLAMA_URL}/v1/chat/completions`, {

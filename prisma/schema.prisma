@@ -99,10 +99,17 @@ model PastQuestion {
 // ---------------------------------------------------------------------------
 
 model Settings {
-  id        Int      @id @default(1)
-  language  String   @default("en") // "en" | "ha" | "mixed"
-  model     String   @default("gemma4:e2b")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          Int      @id @default(1)
+  language    String   @default("en") // "en" | "ha" | "mixed"
+  model       String   @default("gemma4:e2b")
+  // Optional user overrides for the conversational routes (lesson/chat/gloss/
+  // audio) only — the "json" route's low temperature / token cap stay fixed
+  // regardless (structural JSON reliability, not a length/tone preference).
+  // Null means "use the per-route defaults in src/lib/ollama.ts unchanged".
+  // num_ctx is intentionally NOT exposed here — see src/lib/ollama.ts.
+  temperature Float?   // clamped server-side to [0.0, 1.0]
+  tokenBudget Int?     @map("token_budget") // clamped server-side to [80, 500]
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("settings")
 }

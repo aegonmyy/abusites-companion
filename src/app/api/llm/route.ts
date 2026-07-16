@@ -70,17 +70,45 @@ export async function POST(request: Request) {
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   const model = settings?.model ?? DEFAULT_MODEL;
 
+  // User-configurable overrides from Settings ("Response creativity" /
+  // "Response length") — only ever applied to the conversational routes
+  // (lesson/chat/gloss/audio), never "json" (structural JSON reliability
+  // stays fixed regardless of what the user picks). Re-clamped here even
+  // though /api/settings already clamps on write, since this is the actual
+  // point where an out-of-range value would reach Ollama.
+  const temperatureOverride =
+    routeTag !== "json" && typeof settings?.temperature === "number"
+      ? Math.min(1, Math.max(0, settings.temperature))
+      : undefined;
+  const numPredictOverride =
+    routeTag !== "json" && typeof settings?.tokenBudget === "number"
+      ? Math.min(500, Math.max(80, Math.round(settings.tokenBudget)))
+      : undefined;
+
   let upstream: Response;
   let textStream: ReadableStream<Uint8Array>;
   try {
     if (audio) {
-      upstream = await ollamaChatAudioStream({ system, history: messages, audio, model });
+      upstream = await ollamaChatAudioStream({
+        system,
+        history: messages,
+        audio,
+        model,
+        numPredictOverride,
+        temperatureOverride,
+      });
       textStream = sseToTextStream(upstream.body!);
     } else {
       const fullMessages: ChatMessage[] = system
         ? [{ role: "system", content: system }, ...messages]
         : messages;
-      upstream = await ollamaChatStream({ routeTag, messages: fullMessages, model });
+      upstream = await ollamaChatStream({
+        routeTag,
+        messages: fullMessages,
+        model,
+        numPredictOverride,
+        temperatureOverride,
+      });
       textStream = ndjsonToTextStream(upstream.body!);
     }
   } catch (err) {
