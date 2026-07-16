@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import LoadingSpinner from "./LoadingSpinner";
 import MathText from "./MathText";
+import { qotdGlossSystemPrompt, type Language } from "@/lib/prompts";
 
 type Question = {
   id: string;
@@ -33,12 +34,72 @@ export default function QuestionOfDayCard() {
   const [data, setData] = useState<QotdResponse | null>(null);
   const [chosen, setChosen] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [language, setLanguage] = useState<Language>("en");
+  const [aiExplain, setAiExplain] = useState("");
+  const [aiExplainLoading, setAiExplainLoading] = useState(false);
+  const [aiExplainError, setAiExplainError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/qotd")
       .then((r) => r.json())
       .then(setData);
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((d) => setLanguage((d.language as Language) ?? "en"))
+      .catch(() => {});
   }, []);
+
+  async function explainWithAi() {
+    if (!data?.question || aiExplainLoading) return;
+    const q = data.question;
+    setAiExplainLoading(true);
+    setAiExplainError(null);
+    setAiExplain("");
+    try {
+      const options = [q.optionA, q.optionB, q.optionC, q.optionD]
+        .map((opt, i) => (opt ? `${OPTION_LABELS[i]}. ${opt}` : null))
+        .filter(Boolean)
+        .join("\n");
+      const correctLabel = q.correctIndex != null ? OPTION_LABELS[q.correctIndex] : "Unknown";
+      const userContent = [
+        `Question: ${q.questionText ?? q.title}`,
+        `Options:\n${options}`,
+        `Correct option: ${correctLabel}`,
+        q.explanation ? `Static explanation already shown: ${q.explanation}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
+      const res = await fetch("/api/llm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          routeTag: "gloss",
+          system: qotdGlossSystemPrompt(language),
+          numPredictOverride: 220,
+          messages: [{ role: "user", content: userContent }],
+        }),
+      });
+      if (!res.ok || !res.body) throw new Error("Local model call failed.");
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let assembled = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        if (chunk) {
+          assembled += chunk;
+          setAiExplain(assembled);
+        }
+      }
+      if (!assembled.trim()) throw new Error("Local model unavailable — is Ollama running?");
+    } catch (err) {
+      setAiExplainError(err instanceof Error ? err.message : "Could not get an AI explanation.");
+    } finally {
+      setAiExplainLoading(false);
+    }
+  }
 
   async function answer(index: number) {
     if (!data?.question || submitting || data.answeredIndex != null) return;
@@ -136,6 +197,34 @@ export default function QuestionOfDayCard() {
           className="mt-4 border-t border-white/10 pt-3 text-sm text-white/60"
         >
           <MathText text={q.explanation} />
+        </div>
+      )}
+
+      {answered && (
+        <div className={`${q.explanation ? "mt-3" : "mt-4 border-t border-white/10 pt-3"} flex flex-col gap-2`}>
+          {!aiExplain && !aiExplainLoading && (
+            <button
+              type="button"
+              onClick={explainWithAi}
+              data-testid="qotd-explain-ai-button"
+              className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 px-3 py-1.5 text-xs font-semibold text-white/80 transition hover:border-white/40"
+            >
+              Explain with AI
+            </button>
+          )}
+          {aiExplainLoading && !aiExplain && (
+            <p className="flex items-center gap-2 text-xs text-white/50">
+              <LoadingSpinner size={14} label="Thinking" />
+              Asking the local model…
+            </p>
+          )}
+          {aiExplainError && <p className="text-xs text-rose-300">{aiExplainError}</p>}
+          {aiExplain && (
+            <div data-testid="qotd-explanation-ai" className="rounded-xl border border-emerald-300/20 bg-emerald-500/5 p-3 text-sm text-white/80">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300/80">AI explanation</p>
+              <MathText text={aiExplain} />
+            </div>
+          )}
         </div>
       )}
     </div>

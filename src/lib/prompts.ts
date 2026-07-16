@@ -61,11 +61,27 @@ export function syllabusGenerationSystemPrompt(language: Language): string {
   ].join("\n");
 }
 
+/**
+ * QOTD's on-demand "Explain with AI" call (routeTag "gloss", streamed) — a
+ * live alternative to the static pre-written `explanation` text already
+ * baked into the seeded question data. Mirrors the intent of Grinnish's real
+ * "Explain this" feature (a floating chat widget that called a cloud model
+ * for a live explanation on QOTD/CBT/past-questions/bookmarks), but scoped
+ * to this component rather than recreated as a global widget — that
+ * mechanism was bundled with human support-ticket functionality this
+ * no-accounts app deliberately doesn't have. Takes the model past a bare
+ * "why is this correct" gloss: it's told what the static explanation
+ * already said (if any) so it adds a genuinely different angle — why the
+ * wrong options are wrong, or a different way to think about it — rather
+ * than restating it.
+ */
 export function qotdGlossSystemPrompt(language: Language): string {
   return [
     BASE,
     languageLine(language),
-    "Given a multiple-choice question and the correct answer, write a one-to-two sentence explanation of why it's correct. Do not repeat the full question.",
+    "The student is looking at a multiple-choice question they've already answered and wants a live AI explanation, not just the static answer key.",
+    "Explain why the correct option is right, and briefly why the other options are wrong or tempting. If a static explanation is given below, don't just restate it — add a genuinely different angle (a different way to think about it, a common mix-up, a quick example) that helps more than the static text alone.",
+    "Keep it tight: a short paragraph, not an essay.",
   ].join("\n");
 }
 
@@ -206,14 +222,63 @@ export function notesQuizSystemPrompt(language: Language): string {
   ].join("\n");
 }
 
-export function notesChatSystemPrompt(language: Language, title: string, summary: string, keyConcepts: string[]): string {
+/**
+ * Legacy-notes-only follow-up chat (routeTag "chat") — used for
+ * pre-migration notes that have a real `summary`/`keyConcepts` but no
+ * `segments`. `sourceExcerpt` grounds it in the note's actual saved text
+ * (same fix as notesSegmentExplanationSystemPrompt below: this used to only
+ * receive derived titles/summary, never the real document). New,
+ * segments-shaped notes use notesSegmentChatSystemPrompt instead — see
+ * SegmentsView.tsx.
+ */
+export function notesChatSystemPrompt(
+  language: Language,
+  title: string,
+  summary: string,
+  keyConcepts: string[],
+  sourceExcerpt: string = "",
+): string {
   return [
     BASE,
     languageLine(language),
     `You are answering follow-up questions about a saved note titled "${title}".`,
     `Note summary: ${summary}`,
     keyConcepts.length ? `Key concepts: ${keyConcepts.join(", ")}.` : "",
+    sourceExcerpt
+      ? `The student's own saved source text (use this as ground truth, don't invent details it doesn't support):\n<<<\n${sourceExcerpt}\n>>>`
+      : "",
     "Answer using this note as context. Explain simply, short worked examples over long prose. If asked something the note doesn't cover, say so briefly, then answer anyway if you can.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+/**
+ * Per-segment follow-up chat (routeTag "chat") for segments-shaped notes —
+ * each segment ("tab") in SegmentsView gets its own scoped conversation
+ * rather than one chat shared across the whole document. Grounded in both
+ * the segment's own already-generated explanation (the strongest available
+ * context — it's already been checked against the source once) and a raw
+ * source excerpt, same pattern as notesSegmentExplanationSystemPrompt.
+ */
+export function notesSegmentChatSystemPrompt(
+  language: Language,
+  documentTitle: string,
+  segmentTitle: string,
+  segmentSummary: string,
+  explanation: string,
+  sourceExcerpt: string,
+): string {
+  return [
+    BASE,
+    languageLine(language),
+    `You are answering follow-up questions about one segment of a document titled "${documentTitle}".`,
+    `Segment: "${segmentTitle}" — ${segmentSummary}`,
+    explanation ? `You already explained this segment as follows:\n<<<\n${explanation}\n>>>` : "",
+    sourceExcerpt
+      ? `The student's own source material for this segment (ground truth, don't invent details it doesn't support):\n<<<\n${sourceExcerpt}\n>>>`
+      : "",
+    "Answer the student's follow-up using the above as context. Explain simply, short worked examples over long prose. Stay scoped to this segment unless the student clearly asks about something else.",
   ]
     .filter(Boolean)
     .join("\n");

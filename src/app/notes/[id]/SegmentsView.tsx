@@ -14,10 +14,15 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { notesSegmentExplanationSystemPrompt, type Language } from "@/lib/prompts";
+import MicButton from "@/components/MicButton";
+import SendGlyph from "@/components/SendGlyph";
+import MathText from "@/components/MathText";
+import { notesSegmentExplanationSystemPrompt, notesSegmentChatSystemPrompt, type Language } from "@/lib/prompts";
 import { DEPTH_NUM_PREDICT, type DepthPreference } from "@/lib/notes-depth";
 
 export type Segment = { segment_id: string; title: string; summary: string };
+
+type ChatMsg = { role: "user" | "assistant"; content: string };
 
 type SegmentsViewProps = {
   noteId: string;
@@ -53,6 +58,13 @@ export default function SegmentsView({
   const [explanations, setExplanations] = useState<Record<string, string>>(initialExplanations);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [errorId, setErrorId] = useState<string | null>(null);
+
+  // Per-segment ("tab-specific") follow-up chat — each segment gets its own
+  // conversation, scoped to that segment's own explanation + source excerpt,
+  // rather than one chat shared across the whole document.
+  const [chats, setChats] = useState<Record<string, ChatMsg[]>>({});
+  const [chatInputs, setChatInputs] = useState<Record<string, string>>({});
+  const [chatStreamingId, setChatStreamingId] = useState<string | null>(null);
 
   async function openSegment(segment: Segment) {
     setOpenId(segment.segment_id);
@@ -130,6 +142,93 @@ export default function SegmentsView({
     }
   }
 
+  function chatSystemFor(segment: Segment): string {
+    const sourceExcerpt = (sourceText ?? "").trim().slice(0, MAX_SOURCE_EXCERPT_CHARS);
+    return notesSegmentChatSystemPrompt(
+      language,
+      documentTitle,
+      segment.title,
+      segment.summary,
+      explanations[segment.segment_id] ?? "",
+      sourceExcerpt,
+    );
+  }
+
+  async function streamChatReply(segmentId: string, res: Response) {
+    if (!res.body) return;
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      if (!chunk) continue;
+      setChats((prev) => {
+        const log = prev[segmentId] ?? [];
+        const copy = [...log];
+        copy[copy.length - 1] = { ...copy[copy.length - 1], content: copy[copy.length - 1].content + chunk };
+        return { ...prev, [segmentId]: copy };
+      });
+    }
+  }
+
+  function replaceLastChatMessage(segmentId: string, content: string) {
+    setChats((prev) => {
+      const log = prev[segmentId] ?? [];
+      const copy = [...log];
+      copy[copy.length - 1] = { ...copy[copy.length - 1], content };
+      return { ...prev, [segmentId]: copy };
+    });
+  }
+
+  async function sendChat(segment: Segment) {
+    const segmentId = segment.segment_id;
+    const content = (chatInputs[segmentId] ?? "").trim();
+    if (!content || chatStreamingId) return;
+    const history = chats[segmentId] ?? [];
+    const nextHistory = [...history, { role: "user" as const, content }];
+    setChats((prev) => ({ ...prev, [segmentId]: [...nextHistory, { role: "assistant", content: "" }] }));
+    setChatInputs((prev) => ({ ...prev, [segmentId]: "" }));
+    setChatStreamingId(segmentId);
+    try {
+      const res = await fetch("/api/llm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ routeTag: "chat", system: chatSystemFor(segment), messages: nextHistory }),
+      });
+      if (!res.ok || !res.body) throw new Error("Local model call failed.");
+      await streamChatReply(segmentId, res);
+    } catch {
+      replaceLastChatMessage(segmentId, "(Local model unavailable — is Ollama running?)");
+    } finally {
+      setChatStreamingId(null);
+    }
+  }
+
+  async function sendChatAudio(segment: Segment, audio: { base64: string; format: string }) {
+    const segmentId = segment.segment_id;
+    if (chatStreamingId) return;
+    const history = chats[segmentId] ?? [];
+    setChats((prev) => ({
+      ...prev,
+      [segmentId]: [...history, { role: "user", content: "🎤 (voice message)" }, { role: "assistant", content: "" }],
+    }));
+    setChatStreamingId(segmentId);
+    try {
+      const res = await fetch("/api/llm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ routeTag: "audio", system: chatSystemFor(segment), messages: history, audio }),
+      });
+      if (!res.ok || !res.body) throw new Error("Local model call failed.");
+      await streamChatReply(segmentId, res);
+    } catch {
+      replaceLastChatMessage(segmentId, "(Local model unavailable — is Ollama running?)");
+    } finally {
+      setChatStreamingId(null);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4" data-testid="segments-view">
       <div className="card-deep rounded-2xl p-4 text-white sm:p-6">
@@ -189,6 +288,62 @@ export default function SegmentsView({
                       <LoadingSpinner size={12} label="Generating" />
                       Generating…
                     </p>
+                  ) : null}
+
+                  {isCached ? (
+                    <div className="mt-5 flex flex-col gap-2 border-t border-white/10 pt-4" data-testid={`segment-${segment.segment_id}-chat`}>
+                      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+                        Ask about this segment
+                      </span>
+                      {(chats[segment.segment_id] ?? []).length > 0 && (
+                        <div className="flex flex-col gap-2" data-testid={`segment-${segment.segment_id}-chat-log`}>
+                          {(chats[segment.segment_id] ?? []).map((m, i) => (
+                            <div
+                              key={i}
+                              className={`max-w-full rounded-2xl px-3 py-2 text-sm ${
+                                m.role === "user" ? "self-end bg-white/15 text-white" : "self-start bg-white/5 text-white/80"
+                              }`}
+                            >
+                              {m.role === "assistant" && !m.content ? (
+                                <LoadingSpinner size={16} label="Thinking" />
+                              ) : (
+                                <MathText text={m.content} />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          sendChat(segment);
+                        }}
+                        className="mt-1 flex items-center gap-2"
+                      >
+                        <input
+                          value={chatInputs[segment.segment_id] ?? ""}
+                          onChange={(e) =>
+                            setChatInputs((prev) => ({ ...prev, [segment.segment_id]: e.target.value }))
+                          }
+                          placeholder="Ask a follow-up about this segment…"
+                          data-testid={`segment-${segment.segment_id}-chat-input`}
+                          className="min-w-0 flex-1 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                        />
+                        <button
+                          type="submit"
+                          disabled={chatStreamingId === segment.segment_id}
+                          data-testid={`segment-${segment.segment_id}-chat-send`}
+                          className="inline-flex h-11 min-w-[44px] shrink-0 items-center justify-center rounded-full bg-white text-slate-900 disabled:opacity-60"
+                          aria-label="Send"
+                        >
+                          <SendGlyph />
+                        </button>
+                        <MicButton
+                          disabled={chatStreamingId === segment.segment_id}
+                          onRecorded={(audio) => sendChatAudio(segment, audio)}
+                        />
+                      </form>
+                    </div>
                   ) : null}
                 </div>
               ) : null}

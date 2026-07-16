@@ -7,15 +7,19 @@
 // (self-end bg-white/15 / self-start bg-white/5) for the follow-up chat.
 
 import { use, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import MathText from "@/components/MathText";
 import MicButton from "@/components/MicButton";
 import SendGlyph from "@/components/SendGlyph";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { BackIcon, BookmarksIcon, TrashIcon } from "@/components/icons/NavIcons";
 import { notesChatSystemPrompt, notesQuizSystemPrompt, type Language } from "@/lib/prompts";
 import { parseModelJson } from "@/lib/parse-model-json";
 import SegmentsView, { type Segment } from "./SegmentsView";
 import { isDepthPreference } from "@/lib/notes-depth";
+
+const MAX_SOURCE_EXCERPT_CHARS = 6000;
 
 type QuizQuestion = {
   question: string;
@@ -211,7 +215,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     setInput("");
     setStreaming(true);
 
-    const system = notesChatSystemPrompt(language, note.title, noteContextSummary(note), note.keyConcepts);
+    const sourceExcerpt = (note.rawText ?? "").trim().slice(0, MAX_SOURCE_EXCERPT_CHARS);
+    const system = notesChatSystemPrompt(language, note.title, noteContextSummary(note), note.keyConcepts, sourceExcerpt);
 
     try {
       const res = await fetch("/api/llm", {
@@ -233,7 +238,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     setChat((prev) => [...prev, { role: "user", content: "🎤 (voice message)" }, { role: "assistant", content: "" }]);
     setStreaming(true);
 
-    const system = notesChatSystemPrompt(language, note.title, noteContextSummary(note), note.keyConcepts);
+    const sourceExcerpt = (note.rawText ?? "").trim().slice(0, MAX_SOURCE_EXCERPT_CHARS);
+    const system = notesChatSystemPrompt(language, note.title, noteContextSummary(note), note.keyConcepts, sourceExcerpt);
 
     try {
       const res = await fetch("/api/llm", {
@@ -260,6 +266,17 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
           </p>
         ) : (
           <>
+            <div>
+              <Link
+                href="/notes"
+                data-testid="back-to-notes-link"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/60 transition hover:text-white/90"
+              >
+                <BackIcon className="h-4 w-4" />
+                Back to notes
+              </Link>
+            </div>
+
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-semibold text-white">{note.title}</h1>
@@ -267,22 +284,30 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                   <MathText as="p" className="mt-2 text-sm text-white/70" text={note.summary} />
                 ) : null}
               </div>
-              <div className="flex shrink-0 flex-col items-end gap-2">
+              <div className="flex shrink-0 items-center gap-2">
                 <button
                   type="button"
                   onClick={bookmark}
                   data-testid="bookmark-note-button"
-                  className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-white/80 hover:border-white/40"
+                  aria-label={bookmarked ? "Bookmarked" : "Bookmark"}
+                  title={bookmarked ? "Bookmarked" : "Bookmark"}
+                  className={`inline-flex h-10 w-10 items-center justify-center rounded-full border transition ${
+                    bookmarked
+                      ? "border-emerald-300/50 bg-emerald-500/15 text-emerald-300"
+                      : "border-white/20 text-white/80 hover:border-white/40"
+                  }`}
                 >
-                  {bookmarked ? "Bookmarked" : "Bookmark"}
+                  <BookmarksIcon />
                 </button>
                 <button
                   type="button"
                   onClick={remove}
                   data-testid="delete-note-button"
-                  className="rounded-full border border-rose-300/40 px-3 py-1 text-xs font-semibold text-rose-200 hover:border-rose-300/70"
+                  aria-label="Delete"
+                  title="Delete"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-rose-300/40 text-rose-200 transition hover:border-rose-300/70 hover:bg-rose-500/10"
                 >
-                  Delete
+                  <TrashIcon />
                 </button>
               </div>
             </div>
@@ -392,6 +417,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
               </div>
             )}
 
+            {!(note.segments && note.segments.length > 0) && (
             <div className="card-deep flex min-h-[18rem] flex-col gap-3 rounded-2xl p-5 text-white">
               <span className="text-sm font-semibold text-white">Ask about this note</span>
               <div className="flex flex-1 flex-col gap-3 overflow-y-auto" data-testid="note-chat-log">
@@ -437,6 +463,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                 <MicButton disabled={streaming} onRecorded={sendAudio} />
               </form>
             </div>
+            )}
           </>
         )}
       </div>
