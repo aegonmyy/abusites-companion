@@ -79,7 +79,7 @@ export default function StudyIntakeForm() {
     };
   }, []);
 
-  const canSubmit = topic.trim() && goal.trim();
+  const canSubmit = topic.trim().length > 0;
 
   const handleAutofill = () => {
     setTopic("Limits");
@@ -136,7 +136,9 @@ export default function StudyIntakeForm() {
             messages: [
               {
                 role: "user",
-                content: `Topic: ${cleanTopic}\nGoal: ${cleanGoal}\nAvailable minutes: 30`,
+                content: [`Topic: ${cleanTopic}`, cleanGoal ? `Goal: ${cleanGoal}` : null, `Available minutes: 30`]
+                  .filter(Boolean)
+                  .join("\n"),
               },
             ],
           }),
@@ -308,14 +310,13 @@ export default function StudyIntakeForm() {
         </div>
 
         <div>
-          <label className="text-sm font-semibold text-white/90">Goal</label>
+          <label className="text-sm font-semibold text-white/90">Goal (optional)</label>
           <input
             value={goal}
             onChange={(event) => setGoal(event.target.value)}
             placeholder="e.g. Ace my midterm, build a portfolio project"
             data-testid="goal-input"
             className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
-            required
           />
         </div>
 
@@ -372,7 +373,14 @@ export default function StudyIntakeForm() {
                     <button
                       key={entry.id}
                       type="button"
-                      onClick={() => setSelectedSyllabusId(entry.id)}
+                      onClick={() => {
+                        setSelectedSyllabusId(entry.id);
+                        if (entry.syllabus_json) {
+                          setSyllabus(JSON.stringify(entry.syllabus_json));
+                          setSyllabusId(entry.id);
+                          setSyllabusMenuOpen(false);
+                        }
+                      }}
                       className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${
                         isSelected
                           ? "border-white/60 bg-white text-slate-900"
@@ -388,23 +396,6 @@ export default function StudyIntakeForm() {
                     </button>
                   );
                 })}
-              </div>
-              <div className="mt-auto flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const entry = syllabi.find((item) => item.id === selectedSyllabusId);
-                    if (entry?.syllabus_json) {
-                      setSyllabus(JSON.stringify(entry.syllabus_json));
-                      setSyllabusId(entry.id);
-                      setSyllabusMenuOpen(false);
-                    }
-                  }}
-                  disabled={!selectedSyllabusId}
-                  className="w-full rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 disabled:opacity-60"
-                >
-                  Open selected syllabus
-                </button>
               </div>
             </aside>
           </div>
