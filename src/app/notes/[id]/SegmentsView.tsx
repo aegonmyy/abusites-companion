@@ -26,7 +26,19 @@ type SegmentsViewProps = {
   depthPreference: DepthPreference;
   language: Language;
   initialExplanations: Record<string, string>;
+  /** The note's original source text (paste/PDF-extracted). Passed to the
+   * explanation prompt so it's grounded in what the student actually
+   * uploaded rather than the model's own background knowledge of a topic
+   * implied by the segment title. Capped below to stay well inside num_ctx
+   * (4096) even for a long paste. */
+  sourceText: string | null;
 };
+
+// ~6000 chars is comfortably under num_ctx (4096 tokens) once the rest of
+// the system prompt + response budget is accounted for, even at a rough
+// ~3 chars/token for dense text. A segment only ever needs a slice of a
+// long document anyway (the model is told to use only the relevant part).
+const MAX_SOURCE_EXCERPT_CHARS = 6000;
 
 export default function SegmentsView({
   noteId,
@@ -35,6 +47,7 @@ export default function SegmentsView({
   depthPreference,
   language,
   initialExplanations,
+  sourceText,
 }: SegmentsViewProps) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [explanations, setExplanations] = useState<Record<string, string>>(initialExplanations);
@@ -53,11 +66,14 @@ export default function SegmentsView({
     setExplanations((prev) => ({ ...prev, [segment.segment_id]: "" }));
 
     try {
+      const sourceExcerpt = (sourceText ?? "").trim().slice(0, MAX_SOURCE_EXCERPT_CHARS);
       const system = notesSegmentExplanationSystemPrompt(
         language,
         documentTitle,
         segment.title,
         segment.summary,
+        depthPreference,
+        sourceExcerpt,
       );
       const res = await fetch("/api/llm", {
         method: "POST",

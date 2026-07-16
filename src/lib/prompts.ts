@@ -134,27 +134,56 @@ export function notesSegmentSplitFromImageSystemPrompt(language: Language): stri
   ].join("\n");
 }
 
+export type NoteExplanationDepth = "quick" | "standard" | "deep";
+
+/** Per-depth instruction text. Previously the three tiers shared identical
+ * prompt wording and only differed by numPredictOverride (350/700/1200) —
+ * measured in testing to rarely matter, since the model often naturally
+ * stops around 300-450 tokens regardless of the cap (a real ceiling, not a
+ * target). Depth now comes from what the model is actually asked to do,
+ * with the token cap kept only as a safety ceiling behind it. */
+const DEPTH_INSTRUCTION: Record<NoteExplanationDepth, string> = {
+  quick:
+    "Keep this brief: 2-4 sentences covering just the core idea. Skip examples and side detail unless truly essential to understanding it.",
+  standard:
+    "Give a clear, real explanation: define the idea, explain why it matters, and include one short example or illustration if it helps. A student should come away actually understanding it, not just recognizing the term.",
+  deep:
+    "Go further than a standard explanation: define the idea, explain the underlying mechanism in detail, include a worked example or concrete illustration, address a common misconception or edge case, and explain how this segment connects to the segments before and after it in the document.",
+};
+
 /**
  * Notes' on-demand deep-explanation call (routeTag "lesson", streamed),
  * generated once per segment when the student opens it — mirrors
  * subunitTutorSystemPrompt's role exactly, but produces a single thorough
- * explanation rather than a back-and-forth tutoring turn, and explicitly
- * asks for depth (this whole feature exists because the old upfront
- * "compact summary" wasn't what was wanted).
+ * explanation rather than a back-and-forth tutoring turn.
+ *
+ * `sourceExcerpt` grounds the explanation in the student's actual uploaded
+ * material rather than the model's own background knowledge of a topic
+ * implied by the segment title — a real gap found in testing: the prompt
+ * used to *say* "the material excerpt that follows" while no excerpt was
+ * ever actually sent, so explanations could drift from what the student
+ * submitted. Capped by the caller to stay well inside num_ctx (4096) even
+ * for a long paste; the instruction below tells the model to use only the
+ * part relevant to this segment; ignore the rest.
  */
 export function notesSegmentExplanationSystemPrompt(
   language: Language,
   documentTitle: string,
   segmentTitle: string,
   segmentSummary: string,
+  depth: NoteExplanationDepth,
+  sourceExcerpt: string,
 ): string {
   return [
     BASE,
     languageLine(language),
     `You are explaining one segment of a document titled "${documentTitle}".`,
     `Segment: "${segmentTitle}" — ${segmentSummary}`,
-    "Give a genuinely in-depth explanation of this segment: define the ideas, explain why they matter and how they connect, and include a short worked example or concrete illustration where it helps. This should read like a real explanation a student could learn from, not a compact summary.",
-    "Base the explanation on the segment's place in the source document (given above and in the material excerpt that follows) — do not wander into unrelated territory.",
+    DEPTH_INSTRUCTION[depth],
+    "This should read like a real explanation a student could learn from, not a compact summary.",
+    sourceExcerpt
+      ? `Base the explanation on the student's own source material below — use only the part of it relevant to this segment, ignore unrelated parts, and do not invent details the material doesn't support:\n<<<\n${sourceExcerpt}\n>>>`
+      : "No source excerpt was available for this document — explain the segment from its title and summary as accurately and honestly as you can, without inventing specifics the student didn't provide.",
   ]
     .filter(Boolean)
     .join("\n");

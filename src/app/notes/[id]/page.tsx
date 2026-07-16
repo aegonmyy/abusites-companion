@@ -308,6 +308,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                 depthPreference={isDepthPreference(note.depthPreference) ? note.depthPreference : "standard"}
                 language={language}
                 initialExplanations={note.segmentExplanations}
+                sourceText={note.rawText}
               />
             ) : null}
 
