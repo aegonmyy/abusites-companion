@@ -12,7 +12,10 @@ import MathText from "@/components/MathText";
 import MicButton from "@/components/MicButton";
 import SendGlyph from "@/components/SendGlyph";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { notesChatSystemPrompt, type Language } from "@/lib/prompts";
+import { notesChatSystemPrompt, notesQuizSystemPrompt, type Language } from "@/lib/prompts";
+import { parseModelJson } from "@/lib/parse-model-json";
+import SegmentsView, { type Segment } from "./SegmentsView";
+import { isDepthPreference } from "@/lib/notes-depth";
 
 type QuizQuestion = {
   question: string;
@@ -25,13 +28,32 @@ type Note = {
   title: string;
   sourceType: string;
   rawText: string | null;
-  summary: string;
+  // Legacy fields — only populated on pre-migration notes (see the legacy
+  // branch in the render below). New notes leave these null.
+  summary: string | null;
   keyConcepts: string[];
+  // New segments-shaped fields.
+  segments: Segment[] | null;
+  segmentExplanations: Record<string, string>;
+  depthPreference: string;
   quiz: QuizQuestion[];
   createdAt: string;
 };
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
+
+// The whole-document "Ask about this note" chat (unchanged feature) needs a
+// short summary string as context regardless of note shape. Legacy notes
+// have a real one; new segments-shaped notes don't (that upfront compact
+// summary is exactly what this redesign removed), so fall back to a joined
+// list of segment titles — still enough context for the chat prompt.
+function noteContextSummary(note: Note): string {
+  if (note.summary) return note.summary;
+  if (note.segments && note.segments.length > 0) {
+    return `Covers: ${note.segments.map((s) => s.title).join(", ")}.`;
+  }
+  return "";
+}
 
 export default function NoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -44,6 +66,8 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+  const [quizGenerating, setQuizGenerating] = useState(false);
+  const [quizError, setQuizError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -82,6 +106,70 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     if (!note) return;
     await fetch(`/api/notes/${note.id}`, { method: "DELETE" });
     router.push("/notes");
+  }
+
+  // The deferred "Generate quiz" action — quiz generation no longer happens
+  // upfront at note creation; this is an explicit, separate routeTag "json"
+  // call the student triggers after seeing the segment list, reusing the
+  // exact quiz JSON shape (question/options/correct_index) the app already
+  // knows how to render/score above.
+  async function generateQuiz() {
+    if (!note || quizGenerating) return;
+    setQuizGenerating(true);
+    setQuizError(null);
+    try {
+      const source = note.rawText?.trim()
+        ? note.rawText
+        : (note.segments ?? []).map((s) => `${s.title}: ${s.summary}`).join("\n");
+      if (!source.trim()) throw new Error("Nothing to quiz — this note has no source text.");
+
+      const res = await fetch("/api/llm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          routeTag: "json",
+          system: notesQuizSystemPrompt(language),
+          numPredictOverride: 700,
+          messages: [{ role: "user", content: source }],
+        }),
+      });
+      if (!res.ok || !res.body) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error ?? "Local model call failed.");
+      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let text = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        text += decoder.decode(value, { stream: true });
+      }
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("Model did not return a parseable quiz.");
+      const parsed = parseModelJson(jsonMatch[0]) as { quiz?: QuizQuestion[] };
+      if (!Array.isArray(parsed.quiz) || parsed.quiz.length === 0) {
+        throw new Error("Model's response had no quiz questions.");
+      }
+
+      const saveRes = await fetch(`/api/notes/${note.id}/quiz`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quiz: parsed.quiz }),
+      });
+      if (!saveRes.ok) {
+        const d = await saveRes.json().catch(() => ({}));
+        throw new Error(d.error ?? "Could not save quiz.");
+      }
+      const saved = await saveRes.json();
+      setNote((prev) => (prev ? { ...prev, quiz: saved.quiz ?? parsed.quiz } : prev));
+      setAnswers({});
+      setSubmitted(false);
+    } catch (err) {
+      setQuizError(err instanceof Error ? err.message : "Could not generate a quiz.");
+    } finally {
+      setQuizGenerating(false);
+    }
   }
 
   // Fills the already-pushed trailing empty assistant bubble as chunks
@@ -123,7 +211,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     setInput("");
     setStreaming(true);
 
-    const system = notesChatSystemPrompt(language, note.title, note.summary, note.keyConcepts);
+    const system = notesChatSystemPrompt(language, note.title, noteContextSummary(note), note.keyConcepts);
 
     try {
       const res = await fetch("/api/llm", {
@@ -145,7 +233,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     setChat((prev) => [...prev, { role: "user", content: "🎤 (voice message)" }, { role: "assistant", content: "" }]);
     setStreaming(true);
 
-    const system = notesChatSystemPrompt(language, note.title, note.summary, note.keyConcepts);
+    const system = notesChatSystemPrompt(language, note.title, noteContextSummary(note), note.keyConcepts);
 
     try {
       const res = await fetch("/api/llm", {
@@ -175,7 +263,9 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-semibold text-white">{note.title}</h1>
-                <MathText as="p" className="mt-2 text-sm text-white/70" text={note.summary} />
+                {note.summary ? (
+                  <MathText as="p" className="mt-2 text-sm text-white/70" text={note.summary} />
+                ) : null}
               </div>
               <div className="flex shrink-0 flex-col items-end gap-2">
                 <button
@@ -209,6 +299,39 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                 ))}
               </div>
             )}
+
+            {note.segments && note.segments.length > 0 ? (
+              <SegmentsView
+                noteId={note.id}
+                documentTitle={note.title}
+                segments={note.segments}
+                depthPreference={isDepthPreference(note.depthPreference) ? note.depthPreference : "standard"}
+                language={language}
+                initialExplanations={note.segmentExplanations}
+              />
+            ) : null}
+
+            <div className="card-deep flex flex-wrap items-center justify-between gap-3 rounded-2xl p-5 text-white">
+              <div>
+                <span className="text-sm font-semibold text-white">Quiz</span>
+                <p className="mt-1 text-xs text-white/60">
+                  {note.quiz.length > 0
+                    ? "Generate a fresh set of questions any time."
+                    : "Not generated yet — build one whenever you're ready to test yourself."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={generateQuiz}
+                disabled={quizGenerating}
+                data-testid="generate-quiz-button"
+                className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-900 disabled:opacity-60"
+              >
+                {quizGenerating && <LoadingSpinner size={14} className="text-slate-900" label="Generating" />}
+                {quizGenerating ? "Generating…" : note.quiz.length > 0 ? "Regenerate quiz" : "Generate quiz"}
+              </button>
+            </div>
+            {quizError && <p className="text-sm text-rose-300">{quizError}</p>}
 
             {note.quiz.length > 0 && (
               <div

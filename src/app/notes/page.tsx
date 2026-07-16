@@ -14,7 +14,8 @@ type NoteSummary = {
   id: string;
   title: string;
   sourceType: string;
-  summary: string;
+  summary: string | null;
+  segmentCount: number | null;
   createdAt: string;
 };
 
@@ -88,7 +89,11 @@ export default function NotesPage() {
                         {SOURCE_LABEL[n.sourceType] ?? n.sourceType}
                       </span>
                     </div>
-                    <p className="mt-2 line-clamp-2 text-sm text-white/70">{n.summary}</p>
+                    <p className="mt-2 line-clamp-2 text-sm text-white/70">
+                      {n.segmentCount != null
+                        ? `${n.segmentCount} segment${n.segmentCount === 1 ? "" : "s"}`
+                        : (n.summary ?? "")}
+                    </p>
                   </Link>
                 </li>
               ))}

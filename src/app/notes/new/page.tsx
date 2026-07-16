@@ -1,21 +1,23 @@
 "use client";
 
-// New-note screen. Data logic (text / PDF-extract / photo-base64 -> /api/llm
-// -> /api/notes) is the local target's, unchanged. The markup is rebuilt in
-// Grinnish's vocabulary: the max-w header with glow blobs, the Grinnish tab
-// pills (Notes screen "Notes"/"Quiz & fun" pill styling), a glass source card,
-// dashed upload zones, and the white "Generate notes" pill button.
+// New-note screen. Rewired for the segments architecture: the upload-time
+// call is now the fast "json" segment-split call (table of contents only —
+// titles + one-line previews), not the old single summary+quiz call. Deep
+// explanations are generated later, on demand, per segment (see
+// /notes/[id]/SegmentsView.tsx). Depth (quick/standard/deep) is chosen here
+// and stored per-note; it only affects the per-segment explanation calls
+// made later, not this screen's own call.
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseModelJson } from "@/lib/parse-model-json";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import FullPageLoader from "@/components/FullPageLoader";
+import type { DepthPreference } from "@/lib/notes-depth";
 
-type ParsedNote = {
-  summary?: string;
-  key_concepts?: string[];
-  quiz?: unknown[];
+type ParsedSegments = {
+  title?: string;
+  segments?: { segment_id?: string; title?: string; summary?: string }[];
 };
 
 function stripDataUrlPrefix(dataUrl: string): string {
@@ -50,6 +52,12 @@ const TABS: { value: "text" | "pdf" | "image"; label: string; testid: string }[]
   { value: "image", label: "Photo", testid: "mode-image-tab" },
 ];
 
+const DEPTH_OPTIONS: { value: DepthPreference; label: string; hint: string; testid: string }[] = [
+  { value: "quick", label: "Quick", hint: "Shorter explanations, fastest per segment", testid: "depth-quick" },
+  { value: "standard", label: "Standard", hint: "Balanced depth and speed", testid: "depth-standard" },
+  { value: "deep", label: "Deep", hint: "Most thorough, slowest per segment", testid: "depth-deep" },
+];
+
 export default function NewNotePage() {
   const router = useRouter();
   const [mode, setMode] = useState<"text" | "image" | "pdf">("text");
@@ -58,6 +66,7 @@ export default function NewNotePage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [depth, setDepth] = useState<DepthPreference>("standard");
   const [status, setStatus] = useState<"idle" | "extracting" | "generating" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -92,7 +101,9 @@ export default function NewNotePage() {
       const settings = await settingsRes.json();
       const language = settings.language ?? "en";
 
-      const { notesSummarySystemPrompt, notesSummaryFromImageSystemPrompt } = await import("@/lib/prompts");
+      const { notesSegmentSplitSystemPrompt, notesSegmentSplitFromImageSystemPrompt } = await import(
+        "@/lib/prompts"
+      );
 
       let llmBody: Record<string, unknown>;
       let sourceType: string;
@@ -104,7 +115,11 @@ export default function NewNotePage() {
         sourceType = "text";
         llmBody = {
           routeTag: "json",
-          system: notesSummarySystemPrompt(language),
+          system: notesSegmentSplitSystemPrompt(language),
+          // Segment structure is a small, cheap call — cap it well below the
+          // full syllabus's 1500-token budget (a table of contents doesn't
+          // need that much room).
+          numPredictOverride: 700,
           messages: [{ role: "user", content: rawText }],
         };
       } else if (mode === "pdf") {
@@ -115,7 +130,8 @@ export default function NewNotePage() {
         setStatus("generating");
         llmBody = {
           routeTag: "json",
-          system: notesSummarySystemPrompt(language),
+          system: notesSegmentSplitSystemPrompt(language),
+          numPredictOverride: 700,
           messages: [{ role: "user", content: extractedPdfText }],
         };
       } else {
@@ -125,40 +141,56 @@ export default function NewNotePage() {
         const b64 = await fileToBase64(imageFile);
         llmBody = {
           routeTag: "json",
-          system: notesSummaryFromImageSystemPrompt(language),
+          system: notesSegmentSplitFromImageSystemPrompt(language),
+          numPredictOverride: 700,
           messages: [
             {
               role: "user",
-              content: "Read the attached photo of study material and summarize it per the required JSON shape.",
+              content: "Read the attached photo of study material and split it per the required JSON shape.",
               images: [b64],
             },
           ],
         };
       }
 
-      const llmRes = await fetch("/api/llm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(llmBody),
-      });
-      if (!llmRes.ok || !llmRes.body) {
-        const d = await llmRes.json().catch(() => ({}));
-        throw new Error(d.error ?? "Local model call failed.");
-      }
+      const attempt = async (body: Record<string, unknown>) => {
+        const llmRes = await fetch("/api/llm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!llmRes.ok || !llmRes.body) {
+          const d = await llmRes.json().catch(() => ({}));
+          throw new Error(d.error ?? "Local model call failed.");
+        }
+        const reader = llmRes.body.getReader();
+        const decoder = new TextDecoder();
+        let text = "";
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          text += decoder.decode(value, { stream: true });
+        }
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("Model did not return parseable segments.");
+        const parsed = parseModelJson(jsonMatch[0]) as ParsedSegments;
+        if (!Array.isArray(parsed.segments) || parsed.segments.length === 0) {
+          throw new Error("Model's response had no segments.");
+        }
+        return parsed;
+      };
 
-      const reader = llmRes.body.getReader();
-      const decoder = new TextDecoder();
-      let text = "";
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        text += decoder.decode(value, { stream: true });
+      let parsed: ParsedSegments;
+      try {
+        parsed = await attempt(llmBody);
+      } catch {
+        parsed = await attempt({
+          ...llmBody,
+          system:
+            (llmBody.system as string) +
+            "\n\nIMPORTANT: Return ONLY valid, minified JSON on a single line. Do not put line breaks, tabs, or backslashes inside any string value.",
+        });
       }
-
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("Model did not return a parseable summary.");
-      const parsed = parseModelJson(jsonMatch[0]) as ParsedNote;
-      if (!parsed.summary) throw new Error("Model's response had no summary.");
 
       const defaultTitle =
         mode === "text"
@@ -166,16 +198,16 @@ export default function NewNotePage() {
           : mode === "pdf"
             ? pdfFile!.name.replace(/\.pdf$/i, "")
             : "Photo note";
+
       const noteRes = await fetch("/api/notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: title.trim() || defaultTitle,
+          title: title.trim() || parsed.title || defaultTitle,
           sourceType,
           rawText: mode === "text" ? rawText : mode === "pdf" ? extractedPdfText : null,
-          summary: parsed.summary,
-          keyConcepts: parsed.key_concepts ?? [],
-          quiz: parsed.quiz ?? [],
+          segments: parsed.segments,
+          depthPreference: depth,
         }),
       });
       if (!noteRes.ok) {
@@ -196,7 +228,7 @@ export default function NewNotePage() {
     <div className="min-h-screen px-6 py-12">
       {busy ? (
         <FullPageLoader
-          message={status === "extracting" ? "Reading PDF…" : "Summarizing…"}
+          message={status === "extracting" ? "Reading PDF…" : "Finding the segments…"}
         />
       ) : null}
       <div className="mx-auto w-full max-w-3xl">
@@ -206,8 +238,9 @@ export default function NewNotePage() {
               Turn raw notes into active recall.
             </h1>
             <p className="mt-3 max-w-2xl text-sm text-white/70">
-              Paste text, upload a PDF, or snap a photo — the local model reads it
-              and builds a summary, key concepts, and a short quiz.
+              Paste text, upload a PDF, or snap a photo — the local model splits it
+              into segments immediately. Open a segment to generate its deep
+              explanation on demand.
             </p>
           </div>
           <a
@@ -328,6 +361,36 @@ export default function NewNotePage() {
                   </div>
                 )}
 
+                <div className="flex flex-col gap-1.5 text-sm font-semibold text-white/90">
+                  Explanation depth
+                  <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Explanation depth">
+                    {DEPTH_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={depth === opt.value}
+                        data-testid={opt.testid}
+                        onClick={() => setDepth(opt.value)}
+                        className={`flex flex-col items-start gap-0.5 rounded-2xl border px-4 py-2.5 text-left ${
+                          depth === opt.value
+                            ? "border-white/60 bg-white text-slate-900"
+                            : "border-white/20 bg-white/5 text-white/70 hover:border-white/40"
+                        }`}
+                      >
+                        <span className="text-sm font-semibold">{opt.label}</span>
+                        <span className={`text-xs font-normal ${depth === opt.value ? "text-slate-700" : "text-white/50"}`}>
+                          {opt.hint}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs font-normal text-white/40">
+                    Applies when you open a segment later — you can&apos;t change it for
+                    this note afterward.
+                  </p>
+                </div>
+
                 {error && <p className="text-sm text-rose-300">{error}</p>}
 
                 <button
@@ -340,7 +403,7 @@ export default function NewNotePage() {
                   {status === "extracting"
                     ? "Reading PDF…"
                     : status === "generating"
-                      ? "Summarizing…"
+                      ? "Finding segments…"
                       : "Generate note"}
                 </button>
               </div>
