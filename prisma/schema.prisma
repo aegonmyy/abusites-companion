@@ -188,12 +188,43 @@ model Note {
   title     String
   sourceType String  @map("source_type") // "pdf" | "image" | "text"
   rawText   String?  @map("raw_text")
+  // Legacy fields from the original single-call summary+quiz shape. Left in
+  // place (nullable, never written by new notes) so pre-migration notes keep
+  // rendering exactly as before — see NoteDetailPage's legacy branch.
   summary   String?
   keyConcepts String? @map("key_concepts") // JSON array
+  // Table-of-contents produced by the fast "json" segment-split call:
+  // serialized [{segment_id,title,summary}]. Null on legacy (pre-migration)
+  // notes — those have no segment structure and fall back to the legacy
+  // summary/keyConcepts view instead of being force-migrated.
+  segmentsJson String? @map("segments_json")
+  // "quick" | "standard" | "deep" — chosen at upload time, remembered for
+  // this note's on-demand segment explanation calls (numPredictOverride).
+  depthPreference String @default("standard") @map("depth_preference")
+  // Still populated, but now only on-demand via the deferred "Generate quiz"
+  // action instead of always at creation time.
   quizJson  String?  @map("quiz_json")
   createdAt DateTime @default(now()) @map("created_at")
+  segmentExplanations NoteSegmentExplanation[]
 
   @@map("notes")
+}
+
+// One row per generated deep explanation for a note segment. Mirrors
+// SubunitProgress's shape (a related table keyed by parent id + a string
+// sub-id) rather than a JSON blob on Note, since explanations are generated
+// lazily and independently per segment and this codebase already has a
+// proven pattern for exactly that shape.
+model NoteSegmentExplanation {
+  id          String   @id @default(uuid())
+  noteId      String   @map("note_id")
+  segmentId   String   @map("segment_id")
+  explanation String
+  createdAt   DateTime @default(now()) @map("created_at")
+  note        Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@unique([noteId, segmentId])
+  @@map("note_segment_explanations")
 }
 
 model CbtAttempt {
