@@ -62,19 +62,19 @@ export default function BookmarksPage() {
 
         <div className="mt-8">
           {!bookmarks ? (
-            <div className="rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70">
+            <div className="card-deep rounded-2xl border border-white/10 p-6 text-sm text-white/70">
               Loading…
             </div>
           ) : bookmarks.length === 0 ? (
             <div
               data-testid="bookmarks-empty"
-              className="rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70"
+              className="card-deep rounded-2xl border border-white/10 p-6 text-sm text-white/70"
             >
               You have no bookmarks yet.
             </div>
           ) : (
             <section
-              className="rounded-2xl border border-white/10 bg-white/10 p-6 shadow-xl backdrop-blur"
+              className="card-deep rounded-2xl border border-white/10 p-6 shadow-xl backdrop-blur"
               data-testid="bookmarks-list"
             >
               <div className="grid gap-4">

@@ -62,13 +62,13 @@ export default function NotesPage() {
 
         <div className="mt-8">
           {!notes ? (
-            <div className="rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70">
+            <div className="card-deep rounded-2xl border border-white/10 p-6 text-sm text-white/70">
               Loading…
             </div>
           ) : notes.length === 0 ? (
             <div
               data-testid="notes-empty"
-              className="rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70"
+              className="card-deep rounded-2xl border border-white/10 p-6 text-sm text-white/70"
             >
               No notes yet. Start with &quot;New note&quot;.
             </div>
@@ -78,7 +78,7 @@ export default function NotesPage() {
                 <li key={n.id}>
                   <Link
                     href={`/notes/${n.id}`}
-                    className="block h-full rounded-2xl border border-white/10 bg-white/10 p-5 shadow-xl backdrop-blur transition hover:border-white/30 hover:bg-white/15"
+                    className="card-deep block h-full rounded-2xl border border-white/10 p-5 shadow-xl backdrop-blur transition hover:border-white/30"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-semibold text-white">{n.title}</span>

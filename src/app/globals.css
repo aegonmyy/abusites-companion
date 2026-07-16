@@ -110,6 +110,43 @@ body {
   color: #ffffff;
 }
 
+/* Pill-shaped select matching the app's rounded-full buttons (Start CBT,
+ * View past questions, etc.) — used for the course selector, which
+ * previously used the bare, unstyled `.select-dark` above. Same
+ * `card-deep` dark fill, a real visible border, and focus/hover states
+ * consistent with other interactive controls in this app. */
+.select-pill {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background-color: #08111d;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-opacity='0.6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding: 0.6rem 2.5rem 0.6rem 1.25rem;
+  font-size: 0.875rem;
+  color: #ffffff;
+  outline: none;
+  color-scheme: dark;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.select-pill:hover {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.select-pill:focus-visible {
+  border-color: rgba(56, 189, 248, 0.7);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
+}
+
+.select-pill option {
+  background-color: #08111d;
+  color: #ffffff;
+}
+
 button,
 [role="button"] {
   transition:
@@ -147,6 +184,19 @@ button[data-selected="true"],
     0 0 0 2px rgba(16, 185, 129, 0.55),
     0 10px 24px rgba(16, 185, 129, 0.25);
   filter: brightness(1.05);
+}
+
+/* Shared "deep" card surface — promoted from Past Questions' darker,
+ * more opaque modal treatment (`#08111d`) to replace the lighter
+ * `bg-white/10` glass used elsewhere. Applied as a card *fill* over the
+ * ambient `.app-shell` gradient, not a flat page background, so the glow
+ * still shows around/behind cards — same border/backdrop-blur as before,
+ * only the fill gets darker. Defined once here (unlayered, so it beats
+ * Tailwind's `bg-white/10` utility in the cascade the same way
+ * `.nav-button`/`.select-dark` already do) and reused via className
+ * rather than repeating the hex per file. */
+.card-deep {
+  background-color: #08111d;
 }
 
 .nav-button {

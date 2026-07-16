@@ -190,7 +190,7 @@ export default function CourseList({ courses }: Props) {
               <select
                 value={targetCourseId}
                 onChange={(event) => setTargetCourseId(event.target.value)}
-                className="select-dark rounded-full sm:max-w-sm"
+                className="select-pill sm:max-w-sm"
               >
                 {filtered.map((course) => (
                   <option key={course.id} value={course.id}>
