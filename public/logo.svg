@@ -1,5 +1,5 @@
 
-<svg width="320" height="120" viewBox="0 0 320 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="120" height="120" viewBox="38 16 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="orbit" x1="20" y1="20" x2="120" y2="100" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#38BDF8"/>
@@ -32,9 +32,4 @@
   <path d="M96 48H110" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
   <path d="M96 56H110" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
   <path d="M96 64H110" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
-
-  <!-- Wordmark -->
-  <text x="150" y="58" fill="#E2E8F0" font-size="22" font-family="var(--font-geist-sans), system-ui, sans-serif" font-weight="600">
-    Grinnish
-  </text>
 </svg>

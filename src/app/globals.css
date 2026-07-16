@@ -69,10 +69,16 @@ body {
 }
 
 @media (max-width: 640px) {
+  /* Top-right, matching the spacing convention HeaderIcons.tsx/BottomTabBar.tsx
+     use at this same breakpoint (fixed, ~12-16px off the edge). Icon-only
+     logo.svg is small enough now (no wordmark) that it sits left of
+     HeaderIcons' Bookmarks/Settings buttons rather than under them — see
+     HeaderIcons.tsx's `fixed top-3 right-3` positioning, Home-only. */
   .app-brand {
-    top: 14px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 12px;
+    right: 120px;
+    left: auto;
+    transform: none;
     pointer-events: none;
   }
 
