@@ -2,14 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import CourseList, { type CourseSummary } from "./CourseList";
 
-type CourseSummary = {
-  id: string;
-  code: string;
-  title: string;
-  pastQuestionCount: number;
-};
-
+// Ported from Grinnish's app/past-questions/page.tsx. Server + Supabase data
+// load becomes a client fetch of the local /api/past-questions/courses. Auth
+// header links dropped (no auth) — replaced with a "Back to dashboard" link in
+// Grinnish's nav-button vocabulary.
 export default function PastQuestionsPage() {
   const [courses, setCourses] = useState<CourseSummary[] | null>(null);
 
@@ -20,41 +18,38 @@ export default function PastQuestionsPage() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-4" data-testid="past-questions-page">
-      <div>
-        <h1 className="text-xl font-semibold">Past questions</h1>
-        <p className="text-sm muted mt-1">
-          Browse seeded courses. Courses with a question count of 0 don&apos;t
-          have past-question content on this machine yet.
-        </p>
+    <div className="min-h-screen px-6 py-12" data-testid="past-questions-page">
+      <div className="mx-auto w-full max-w-4xl">
+        <header className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold text-white">Past Questions</h1>
+            <p className="mt-2 text-sm text-white/70">
+              Choose a course to review past questions.
+            </p>
+          </div>
+          <Link
+            href="/"
+            className="nav-button rounded-full px-4 py-2 text-sm font-semibold"
+          >
+            Back to dashboard
+          </Link>
+        </header>
+
+        {!courses ? (
+          <div className="mt-8 rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70">
+            Loading courses…
+          </div>
+        ) : courses.length === 0 ? (
+          <div
+            data-testid="courses-empty"
+            className="mt-8 rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70"
+          >
+            No past questions available yet.
+          </div>
+        ) : (
+          <CourseList courses={courses} />
+        )}
       </div>
-
-      {!courses && <p className="text-sm muted">Loading courses…</p>}
-
-      {courses && courses.length === 0 && (
-        <p data-testid="courses-empty" className="text-sm muted">
-          No courses seeded yet. Run <code className="font-mono">npm run seed</code>.
-        </p>
-      )}
-
-      <ul className="flex flex-col gap-3" data-testid="courses-list">
-        {courses?.map((c) => (
-          <li key={c.id}>
-            <Link
-              href={`/past-questions/${c.id}`}
-              className="card-link flex items-center justify-between gap-3 px-4 py-3.5"
-            >
-              <span className="min-w-0">
-                <span className="font-mono text-sm font-semibold" style={{ color: "var(--primary)" }}>{c.code}</span>{" "}
-                <span className="text-sm">{c.title}</span>
-              </span>
-              <span className="chip-neutral shrink-0">
-                {c.pastQuestionCount} question{c.pastQuestionCount === 1 ? "" : "s"}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
