@@ -36,6 +36,15 @@ body {
   }
 }
 
+/* Clearance for the desktop sidebar (Sidebar.tsx): fixed, `left-4` (1rem)
+ * + `w-56` (14rem) wide = right edge at 15rem, plus breathing room so
+ * content's centered `max-w-3xl` column never starts underneath it. */
+@media (min-width: 640px) {
+  .app-shell-content {
+    padding-left: 17rem;
+  }
+}
+
 .app-shell {
   min-height: 100vh;
   background:
@@ -46,46 +55,7 @@ body {
   background-attachment: fixed;
 }
 
-.app-brand {
-  position: fixed;
-  top: 24px;
-  left: 24px;
-  z-index: 50;
-  pointer-events: none;
-}
-
-.app-logo {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  opacity: 0.95;
-  pointer-events: auto;
-}
-
-.app-logo img {
-  height: 56px;
-  width: auto;
-  filter: drop-shadow(0 10px 30px rgba(15, 23, 42, 0.6));
-}
-
 @media (max-width: 640px) {
-  /* Top-right, matching the spacing convention HeaderIcons.tsx/BottomTabBar.tsx
-     use at this same breakpoint (fixed, ~12-16px off the edge). Icon-only
-     logo.svg is small enough now (no wordmark) that it sits left of
-     HeaderIcons' Bookmarks/Settings buttons rather than under them — see
-     HeaderIcons.tsx's `fixed top-3 right-3` positioning, Home-only. */
-  .app-brand {
-    top: 12px;
-    right: 120px;
-    left: auto;
-    transform: none;
-    pointer-events: none;
-  }
-
-  .app-logo img {
-    height: 40px;
-  }
-
   /* Clearance for the floating bottom tab bar (BottomTabBar.tsx) so page
      content — chat inputs, last list items, etc. — never sits behind it.
      Bar is ~64px tall + 16px bottom margin; padding covers that plus
