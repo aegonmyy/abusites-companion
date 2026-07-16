@@ -63,20 +63,20 @@ export default function BookmarksPage() {
 
         <div className="mt-8">
           {!bookmarks ? (
-            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70">
+            <div className="card-deep flex items-center gap-3 rounded-2xl p-6 text-sm text-white/70">
               <LoadingSpinner size={18} label="Loading" />
               Loading…
             </div>
           ) : bookmarks.length === 0 ? (
             <div
               data-testid="bookmarks-empty"
-              className="rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70"
+              className="card-deep rounded-2xl p-6 text-sm text-white/70"
             >
               You have no bookmarks yet.
             </div>
           ) : (
             <section
-              className="rounded-2xl border border-white/10 bg-white/10 p-6 shadow-xl backdrop-blur"
+              className="card-deep card-deep-glow rounded-2xl p-6"
               data-testid="bookmarks-list"
             >
               <div className="grid gap-4">
@@ -107,14 +107,14 @@ export default function BookmarksPage() {
                     <Link
                       key={b.id}
                       href={href}
-                      className="block rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:border-white/30"
+                      className="card-deep block rounded-2xl p-4 transition hover:border-white/30"
                     >
                       {body}
                     </Link>
                   ) : (
                     <div
                       key={b.id}
-                      className="rounded-2xl border border-white/10 bg-white/5 p-4"
+                      className="card-deep rounded-2xl p-4"
                     >
                       {body}
                     </div>
