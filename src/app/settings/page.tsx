@@ -168,12 +168,7 @@ export default function SettingsPage() {
               </label>
             </fieldset>
 
-            <div className="card-deep rounded-2xl p-4 text-sm text-white/70">
-              Model:{" "}
-              <span className="font-mono text-white">gemma4:e2b</span>, chosen
-              for reliable performance on modest hardware.
-              {saving && <span className="ml-2 text-white/50">Saving…</span>}
-            </div>
+            {saving && <p className="text-xs text-white/50">Saving…</p>}
           </div>
         )}
       </div>
