@@ -25,8 +25,8 @@ export async function POST(request: Request) {
     : "quick-refresh";
   const scenario = payload.scenario?.trim() ?? "";
 
-  if (!topic || !goal || !scenario) {
-    return NextResponse.json({ error: "topic, goal, and scenario are required." }, { status: 400 });
+  if (!topic) {
+    return NextResponse.json({ error: "topic is required." }, { status: 400 });
   }
   if (!Number.isFinite(studyMinutes) || studyMinutes <= 0) {
     return NextResponse.json({ error: "studyMinutes must be a positive number." }, { status: 400 });

@@ -53,8 +53,8 @@ export async function POST(request: Request) {
     units?: SyllabusUnit[];
   };
 
-  if (!body.intakeId || !body.topic || !body.goal || !Array.isArray(body.units) || body.units.length === 0) {
-    return NextResponse.json({ error: "intakeId, topic, goal, and a non-empty units array are required." }, { status: 400 });
+  if (!body.intakeId || !body.topic || !Array.isArray(body.units) || body.units.length === 0) {
+    return NextResponse.json({ error: "intakeId, topic, and a non-empty units array are required." }, { status: 400 });
   }
 
   const intake = await prisma.studyIntake.findUnique({ where: { id: body.intakeId } });
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     data: {
       intakeId: body.intakeId,
       topic: body.topic,
-      goal: body.goal,
+      goal: body.goal ?? "",
       unitsJson: JSON.stringify(body.units),
     },
   });
