@@ -1,157 +1,105 @@
 "use client";
 
+import Link from "next/link";
 import { use, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import MathText from "@/components/MathText";
+import CbtClient from "./CbtClient";
 
-type PastQuestion = {
+// Ported from Grinnish's app/cbt/[courseId]/page.tsx (header + layout). The
+// server/Supabase question load becomes a client fetch of the local
+// /api/past-questions/courses/{id}, adapted to CbtClient's question shape.
+type LocalCourseDetail = {
   id: string;
+  code: string;
   title: string;
-  questionText: string | null;
-  optionA: string | null;
-  optionB: string | null;
-  optionC: string | null;
-  optionD: string | null;
-  correctIndex: number | null;
+  pastQuestions: {
+    id: string;
+    title: string;
+    year: number | null;
+    questionText: string | null;
+    optionA: string | null;
+    optionB: string | null;
+    optionC: string | null;
+    optionD: string | null;
+    correctIndex: number | null;
+    explanation: string | null;
+  }[];
 };
 
-export default function CbtStartPage({
+type CbtQuestion = {
+  id: string;
+  year: number | null;
+  question_text: string | null;
+  options: string[];
+  answer: number | null;
+  details: string | null;
+};
+
+export default function CbtPage({
   params,
 }: {
   params: Promise<{ courseId: string }>;
 }) {
   const { courseId } = use(params);
-  const router = useRouter();
-  const [state, setState] = useState<"loading" | "empty" | "active" | "error">("loading");
-  const [attemptId, setAttemptId] = useState<string | null>(null);
-  const [questions, setQuestions] = useState<PastQuestion[]>([]);
-  const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [result, setResult] = useState<{ score: number; total: number } | null>(null);
+  const [course, setCourse] = useState<{ id: string; code: string; title: string } | null>(null);
+  const [questions, setQuestions] = useState<CbtQuestion[] | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    fetch("/api/cbt/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ courseId }),
-    })
+    fetch(`/api/past-questions/courses/${courseId}`)
       .then(async (r) => {
-        if (r.status === 404) {
-          setState("empty");
-          return;
-        }
         if (!r.ok) {
-          setState("error");
+          setNotFound(true);
           return;
         }
-        const data = await r.json();
-        setAttemptId(data.attemptId);
-        setQuestions(data.questions);
-        setState("active");
+        const detail = (await r.json()) as LocalCourseDetail;
+        setCourse({ id: detail.id, code: detail.code, title: detail.title });
+        setQuestions(
+          detail.pastQuestions.map((q) => ({
+            id: q.id,
+            year: q.year,
+            question_text: q.questionText ?? q.title,
+            options: [q.optionA, q.optionB, q.optionC, q.optionD].filter(
+              (o): o is string => o != null && o !== "",
+            ),
+            answer: q.correctIndex,
+            details: q.explanation,
+          })),
+        );
       })
-      .catch(() => setState("error"));
+      .catch(() => setNotFound(true));
   }, [courseId]);
 
-  function choose(questionId: string, index: number) {
-    if (result) return;
-    setAnswers((prev) => ({ ...prev, [questionId]: index }));
-  }
-
-  async function submit() {
-    if (!attemptId) return;
-    const res = await fetch(`/api/cbt/${attemptId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ answers }),
-    });
-    const updated = await res.json();
-    setResult({ score: updated.score, total: updated.total });
-    fetch("/api/streaks", { method: "POST" }).catch(() => {});
-  }
-
-  if (state === "loading") {
-    return <p className="text-sm muted">Starting CBT…</p>;
-  }
-
-  if (state === "empty") {
-    return (
-      <div data-testid="cbt-empty" className="flex flex-col gap-3">
-        <p className="text-sm muted">
-          No past questions available for this course yet.
-        </p>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="btn btn-secondary self-start"
-        >
-          Go back
-        </button>
-      </div>
-    );
-  }
-
-  if (state === "error") {
-    return <p className="text-sm" style={{ color: "var(--bad)" }}>Could not start CBT. Try again.</p>;
-  }
-
   return (
-    <div className="flex flex-col gap-4" data-testid="cbt-active">
-      <h1 className="text-xl font-semibold">CBT practice</h1>
+    <div className="min-h-screen px-6 py-12" data-testid="cbt-page">
+      <div className="mx-auto w-full max-w-5xl">
+        <header className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-sm text-white/60">{course?.code ?? ""}</p>
+            <h1 className="text-3xl font-semibold text-white">CBT Session</h1>
+            <p className="mt-2 text-sm text-white/70">
+              Build a timed test from available past questions.
+            </p>
+          </div>
+          <Link
+            href="/past-questions"
+            className="rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white/80"
+          >
+            Back to questions
+          </Link>
+        </header>
 
-      {result && (
-        <div
-          data-testid="cbt-result"
-          className="card p-5 font-semibold"
-          style={{ color: "var(--primary)" }}
-        >
-          Score: {result.score} / {result.total}
-        </div>
-      )}
-
-      <ol className="flex flex-col gap-4">
-        {questions.map((q, i) => (
-          <li key={q.id} className="card p-4">
-            <MathText as="p" className="mb-2.5 font-medium" text={`${i + 1}. ${q.questionText ?? q.title}`} />
-            <div className="flex flex-col gap-1.5">
-              {[q.optionA, q.optionB, q.optionC, q.optionD].map((opt, idx) =>
-                opt ? (
-                  <button
-                    key={idx}
-                    type="button"
-                    disabled={!!result}
-                    data-testid={`cbt-q${i}-opt${idx}`}
-                    onClick={() => choose(q.id, idx)}
-                    className={
-                      "option " +
-                      (result
-                        ? idx === q.correctIndex
-                          ? "option-correct"
-                          : answers[q.id] === idx
-                            ? "option-wrong"
-                            : ""
-                        : answers[q.id] === idx
-                          ? "option-selected"
-                          : "")
-                    }
-                  >
-                    {String.fromCharCode(65 + idx)}. <MathText text={opt} />
-                  </button>
-                ) : null,
-              )}
-            </div>
-          </li>
-        ))}
-      </ol>
-
-      {!result && (
-        <button
-          type="button"
-          onClick={submit}
-          data-testid="cbt-submit"
-          className="btn btn-primary self-start"
-        >
-          Submit
-        </button>
-      )}
+        {notFound ? (
+          <div className="mt-8 rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70">
+            Course not found.
+          </div>
+        ) : !course || !questions ? (
+          <div className="mt-8 rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70">
+            Loading…
+          </div>
+        ) : (
+          <CbtClient course={course} questions={questions} />
+        )}
+      </div>
     </div>
   );
 }
