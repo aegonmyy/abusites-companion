@@ -33,15 +33,19 @@ function isActive(pathname: string, href: string): boolean {
 
 /**
  * Bookmarks + Settings were previously reachable only via a dashboard card,
- * one tap deep. They don't belong in the 4-tab bottom bar (that'd make 6),
- * so they move to small persistent icon buttons near the brand mark instead
- * — reusing Grinnish's existing `.nav-button` chrome (globals.css) rather
- * than inventing new button styling. Mobile only, same breakpoint as
- * BottomTabBar and `.app-brand`.
+ * one tap deep. They now live as small persistent icon buttons near the
+ * brand mark, Home-only (every other route reaches them via the bottom tab
+ * bar / dashboard content, so keeping them everywhere was redundant chrome).
+ * Styled transparent/blended rather than Grinnish's boxed `.nav-button`
+ * chrome, which read as a contrasting dark pill against the header — scoped
+ * to just these two buttons, `.nav-button` itself is untouched. Mobile
+ * only, same breakpoint as BottomTabBar and `.app-brand`.
  */
 export default function HeaderIcons() {
   const pathname = usePathname();
   const language = useLanguage();
+
+  if (pathname !== "/") return null;
 
   return (
     <div data-testid="header-icons" className="fixed top-3 right-3 z-50 flex items-center gap-2 sm:hidden">
@@ -57,7 +61,7 @@ export default function HeaderIcons() {
             data-testid={testid}
             data-active={active ? "true" : undefined}
             className={
-              "nav-button inline-flex h-11 w-11 items-center justify-center rounded-full " +
+              "inline-flex h-11 w-11 items-center justify-center rounded-full bg-transparent transition-colors hover:bg-white/5 " +
               (active ? "text-emerald-300" : "text-white/80")
             }
           >
