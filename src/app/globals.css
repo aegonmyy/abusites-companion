@@ -89,6 +89,24 @@ body {
   }
 }
 
+/* Shared dark card-surface treatment, matching Past Questions' course
+ * modal (CourseList.tsx's `bg-[#08111d]` full-screen panel) — the same
+ * fill `.select-pill` below already uses, with a real visible border on
+ * the same convention as `.select-pill`/`.nav-button`. Every card/panel
+ * container app-wide uses this flat variant so nested cards never show
+ * Tailwind's bg-white/N shade progression against each other. Reserve
+ * `.card-deep-glow` (adds the colored glow shadow) for the single
+ * primary/hero container per screen only — stacking the glow on nested
+ * boxes reads as noise, not polish. */
+.card-deep {
+  background-color: #08111d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.card-deep-glow {
+  box-shadow: 0 24px 120px rgba(8, 145, 178, 0.22);
+}
+
 .select-dark {
   width: 100%;
   border-radius: 0.5rem;
