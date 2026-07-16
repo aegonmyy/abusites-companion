@@ -621,14 +621,14 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
             }}
             placeholder="Ask a question..."
             data-testid="chat-input"
-            className="w-full flex-1 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none sm:w-auto"
+            className="w-full min-w-0 flex-1 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none sm:w-auto"
           />
           <button
             type="button"
             onClick={() => handleSend()}
             disabled={!chatInput.trim()}
             data-testid="chat-send-button"
-            className="w-full rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 disabled:opacity-60 sm:w-auto"
+            className="w-full shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 disabled:opacity-60 sm:w-auto"
           >
             Send
           </button>

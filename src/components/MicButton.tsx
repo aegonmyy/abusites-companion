@@ -56,7 +56,7 @@ export default function MicButton({ onRecorded, disabled }: Props) {
       aria-label={state === "recording" ? "Stop recording" : "Ask by voice"}
       title="Ask by voice"
       className={
-        "inline-flex h-11 min-w-[44px] items-center justify-center rounded-full border transition " +
+        "inline-flex h-11 min-w-[44px] shrink-0 items-center justify-center rounded-full border transition " +
         (state === "recording"
           ? "animate-pulse border-rose-400 bg-rose-500 text-white"
           : "border-white/20 bg-white/10 text-white/80 hover:border-white/40")

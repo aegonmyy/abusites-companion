@@ -276,13 +276,13 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask a follow-up…"
                   data-testid="note-chat-input"
-                  className="flex-1 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                  className="min-w-0 flex-1 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                 />
                 <button
                   type="submit"
                   disabled={streaming}
                   data-testid="note-chat-send-button"
-                  className="inline-flex h-11 min-w-[44px] items-center justify-center rounded-full bg-white text-slate-900 disabled:opacity-60"
+                  className="inline-flex h-11 min-w-[44px] shrink-0 items-center justify-center rounded-full bg-white text-slate-900 disabled:opacity-60"
                   aria-label="Send"
                 >
                   <SendGlyph />
