@@ -97,3 +97,24 @@ export function notesChatSystemPrompt(language: Language, title: string, summary
     .filter(Boolean)
     .join("\n");
 }
+
+/**
+ * Study-mode-only side call, fired automatically after a tutor response
+ * finishes (both the initial auto-teach and any follow-up chat reply — see
+ * SyllabusView.tsx). Adapted from a real feature in the reference project
+ * (recovered from its deleted pr.md prompt file), but routed through this
+ * app's own single local model/adapter (routeTag "json", gemma4:e2b via
+ * /api/llm) instead of the reference project's separate cloud model pool —
+ * this app has no such infrastructure and isn't building one for this.
+ * Failure of this call must never surface to the user; see the try/catch
+ * around its call site in SyllabusView.tsx.
+ */
+export function prereqDetectionSystemPrompt(language: Language): string {
+  return [
+    BASE,
+    languageLine(language),
+    "You are a prerequisite detector. Read the tutor response below and identify any concepts the student might not know yet that are likely prerequisites for understanding it.",
+    'Return ONLY strict JSON in this exact shape, no markdown fences, no prose outside the JSON: {"missing_prerequisites":[{"concept":"...","prompt":"..."}]}',
+    "Each \"prompt\" must be a short, simple question that would help the learner fill that specific gap. If nothing is missing, return an empty array. Keep the list short — at most 3 items.",
+  ].join("\n");
+}

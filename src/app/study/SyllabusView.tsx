@@ -10,16 +10,18 @@
 //   - progress load          ->  /api/study/syllabus/{id} (completed states only)
 // The target's SubunitProgress row has no messages column, so per-subunit chat
 // history is not persisted across reloads (completed state is). Grinnish's
-// AI-detected "missing prerequisite" chat chips have no local equivalent
-// (they needed a separate cloud model call), so that hook is a no-op; the
-// syllabus-tree prerequisite locking/labels are fully preserved.
+// AI-detected "missing prerequisite" chat chips are now wired to a real local
+// call (routeTag "json", prereqDetectionSystemPrompt) instead of Grinnish's
+// separate cloud model pool — see detectMissingPrereqs below. The
+// syllabus-tree prerequisite locking/labels are unrelated and unchanged.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
-import { subunitTutorSystemPrompt, type Language } from "@/lib/prompts";
+import { subunitTutorSystemPrompt, prereqDetectionSystemPrompt, type Language } from "@/lib/prompts";
+import { parseModelJson } from "@/lib/parse-model-json";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
 type Syllabus = {
@@ -114,7 +116,7 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
   >([]);
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [chatInput, setChatInput] = useState("");
-  const [missingPrereqs] = useState<{ concept: string; prompt: string }[]>([]);
+  const [missingPrereqs, setMissingPrereqs] = useState<{ concept: string; prompt: string }[]>([]);
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -223,6 +225,54 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
     });
   };
 
+  // Study-mode-only side call: after a tutor response finishes streaming,
+  // asks the local model (routeTag "json", low temperature/small token
+  // budget — this is just a handful of short concept+prompt pairs) which
+  // prerequisite concepts the student might be missing, and surfaces them
+  // as clickable chips. Fire-and-forget from the caller's perspective and
+  // fully defensive: any failure (bad JSON, network hiccup, empty response)
+  // is swallowed here so it can never break or block the main tutor reply,
+  // matching this app's existing "side-call failures stay silent" pattern.
+  const detectMissingPrereqs = async (responseText: string) => {
+    if (!responseText.trim()) return;
+    try {
+      const system = prereqDetectionSystemPrompt(language);
+      const res = await fetch("/api/llm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          routeTag: "json",
+          system,
+          messages: [{ role: "user", content: `Tutor response:\n<<<\n${responseText}\n>>>` }],
+        }),
+      });
+      if (!res.ok || !res.body) return;
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let text = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        text += decoder.decode(value, { stream: true });
+      }
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return;
+      const parsed = parseModelJson(jsonMatch[0]) as {
+        missing_prerequisites?: { concept?: string; prompt?: string }[];
+      };
+      const items = Array.isArray(parsed.missing_prerequisites) ? parsed.missing_prerequisites : [];
+      const clean = items
+        .filter(
+          (item): item is { concept: string; prompt: string } =>
+            !!item && typeof item.concept === "string" && typeof item.prompt === "string" && item.prompt.trim().length > 0,
+        )
+        .slice(0, 3);
+      setMissingPrereqs(clean);
+    } catch {
+      // Silent by design — see comment above.
+    }
+  };
+
   const persistProgress = async (subunitId: string, completedValue: boolean) => {
     if (!syllabusId) return;
     try {
@@ -276,6 +326,7 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
       },
       { role: "assistant", content: "" },
     ]);
+    setMissingPrereqs([]);
 
     const modelHistory = [
       ...savedMessages,
@@ -287,7 +338,7 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
       modelHistory,
     );
 
-    await streamResponse(response, (text) => {
+    const { assembled } = await streamResponse(response, (text) => {
       setMessages((prev) => {
         const updated = [...prev];
         const lastIndex = updated.length - 1;
@@ -304,6 +355,7 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
     });
 
     await persistProgress(subunit.subunit_id, true);
+    void detectMissingPrereqs(assembled);
   };
 
   const handleSend = async (override?: string) => {
@@ -321,6 +373,7 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
       { role: "user", content },
       { role: "assistant", content: "" },
     ]);
+    setMissingPrereqs([]);
 
     const response = await callTutor(
       activeSubunit.subunitTitle,
@@ -328,7 +381,7 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
       modelHistory,
     );
 
-    await streamResponse(response, (text) => {
+    const { assembled } = await streamResponse(response, (text) => {
       setMessages((prev) => {
         const updated = [...prev];
         const lastIndex = updated.length - 1;
@@ -348,6 +401,7 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
       activeSubunit.subunitId,
       Boolean(completed[activeSubunit.subunitId]),
     );
+    void detectMissingPrereqs(assembled);
   };
 
   if (!syllabus) {
