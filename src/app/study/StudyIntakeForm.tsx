@@ -113,38 +113,57 @@ export default function StudyIntakeForm() {
       const { syllabusGenerationSystemPrompt } = await import("@/lib/prompts");
       const system = syllabusGenerationSystemPrompt(settings.language ?? "en");
 
-      const llmRes = await fetch("/api/llm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          routeTag: "json",
-          system,
-          messages: [
-            {
-              role: "user",
-              content: `Topic: ${cleanTopic}\nGoal: ${cleanGoal}\nAvailable minutes: 30`,
-            },
-          ],
-        }),
-      });
-      if (!llmRes.ok || !llmRes.body) {
-        const d = await llmRes.json().catch(() => ({}));
-        throw new Error(d.error ?? "Local model call failed.");
-      }
+      // One generation attempt: stream the model output and parse it into a
+      // syllabus. `strictSuffix` is appended to the system prompt on the retry
+      // to nudge the model toward clean, single-line JSON (the small local
+      // model occasionally emits raw newlines/control chars inside string
+      // values, which parseModelJson repairs, or malformed JSON, which the
+      // retry regenerates).
+      const attemptGenerate = async (strictSuffix: string) => {
+        const llmRes = await fetch("/api/llm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            routeTag: "json",
+            system: system + strictSuffix,
+            messages: [
+              {
+                role: "user",
+                content: `Topic: ${cleanTopic}\nGoal: ${cleanGoal}\nAvailable minutes: 30`,
+              },
+            ],
+          }),
+        });
+        if (!llmRes.ok || !llmRes.body) {
+          const d = await llmRes.json().catch(() => ({}));
+          throw new Error(d.error ?? "Local model call failed.");
+        }
 
-      const reader = llmRes.body.getReader();
-      const decoder = new TextDecoder();
-      let text = "";
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        text += decoder.decode(value, { stream: true });
-      }
+        const reader = llmRes.body.getReader();
+        const decoder = new TextDecoder();
+        let text = "";
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          text += decoder.decode(value, { stream: true });
+        }
 
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("Model did not return a parseable syllabus.");
-      const parsed = parseModelJson(jsonMatch[0]) as { units?: unknown };
-      if (!parsed.units) throw new Error("Model's syllabus JSON had no units.");
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("Model did not return a parseable syllabus.");
+        const result = parseModelJson(jsonMatch[0]) as { units?: unknown };
+        if (!result.units) throw new Error("Model's syllabus JSON had no units.");
+        return result;
+      };
+
+      let parsed: { units?: unknown };
+      try {
+        parsed = await attemptGenerate("");
+      } catch {
+        // Retry once with a corrective instruction before surfacing an error.
+        parsed = await attemptGenerate(
+          "\n\nIMPORTANT: Return ONLY valid, minified JSON on a single line. Do not put line breaks, tabs, or backslashes inside any string value.",
+        );
+      }
 
       const syllabusRes = await fetch("/api/study/syllabus", {
         method: "POST",
