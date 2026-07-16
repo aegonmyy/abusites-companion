@@ -31,7 +31,25 @@ const NUM_CTX = 4096;
  * stream), so the cap has to be large enough to survive it. This is a
  * documented, verified finding, not a guess — see docs/AUDIO_FINDING.md. */
 export const NUM_PREDICT = {
-  json: 400,
+  // Raised from 400 when the syllabus prompt was restored to Grinnish's real,
+  // uncapped "continue until fully covered" curriculum-design prompt (see
+  // prompts.ts) instead of the earlier 2-3-unit/2-subunit/2-concept cap that
+  // was only ever a JSON-reliability workaround. Measured against the local
+  // gemma4:e2b across two real rounds of the same 4 topics (temperature 0.1,
+  // not perfectly deterministic, hence two rounds): round 1 (uncapped,
+  // num_predict:2000) — Organic Chemistry 250, Photosynthesis 612, Limits
+  // 705, World War II 907, all `done_reason: "stop"` (natural end, no
+  // truncation). Round 2, re-run at the candidate cap of 1200 to confirm no
+  // truncation at the real value — Organic Chemistry 201, Limits 281,
+  // Photosynthesis 615, World War II 1101, again all natural `"stop"`. World
+  // War II's 1101 left only ~8% headroom under a 1200 cap, too tight given
+  // run-to-run variance (907 -> 1101 for the same topic between rounds), so
+  // the cap is set to 1500 instead: ~36% headroom above the largest real
+  // output observed (1101), while a typical topic (the other 3 rounds
+  // averaged ~375-620 tokens) finishes well under this, so most requests see
+  // no latency change — 1500 is only ever reached by the broadest topics,
+  // and only as a ceiling, not the norm.
+  json: 1500,
   lesson: 250,
   chat: 200,
   gloss: 80,

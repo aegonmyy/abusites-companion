@@ -35,13 +35,28 @@ export function subunitTutorSystemPrompt(language: Language, topic: string, subu
     .join("\n");
 }
 
+/**
+ * Adapted from Grinnish's original syllabus prompt (recovered from its
+ * deleted pr.md via git history) — a curriculum-design prompt with no
+ * unit/subunit count cap at all ("continue until the topic is fully
+ * covered", "avoid large conceptual jumps"). An earlier session here
+ * replaced this with a hard 2-3 unit / 2 subunit / 2 key-concept cap purely
+ * as a JSON-reliability workaround for the small local model — that was
+ * never a pedagogical decision, and it's gone now. Reliability is instead
+ * handled by the strict-JSON / plain-text constraints below (kept from that
+ * earlier fix) plus a raised NUM_PREDICT.json budget (see ollama.ts) sized
+ * for genuinely thorough output. Deliberately has no concept of a "goal" —
+ * the real Grinnish prompt only ever took a topic.
+ */
 export function syllabusGenerationSystemPrompt(language: Language): string {
   return [
     BASE,
     languageLine(language),
-    "Given a study topic, goal, and available minutes, produce a compact syllabus as strict JSON only — no markdown fences, no prose outside the JSON, no fields beyond what's shown.",
-    'Shape: {"units":[{"unit_id":1,"title":"...","subunits":[{"subunit_id":"1.1","title":"...","key_concepts":["...","..."]}]}]}',
-    "Hard limit, must fit a short output budget: exactly 2-3 units, exactly 2 subunits per unit, exactly 2 short key_concepts per subunit (a few words each, not sentences). This is for a short study session, not a full course — terser is better than complete.",
+    "You are a curriculum designer. Break the given topic into a structured learning path, as strict JSON only — no markdown fences, no prose outside the JSON, no fields beyond what's shown.",
+    "Divide the topic into sequential units. Each unit should contain several subunits. Each subunit should introduce only one or two key ideas. Order must progress from foundational concepts to advanced ones — avoid large conceptual jumps. Continue until the topic is fully covered; do not artificially limit the number of units or subunits.",
+    "Do not explain the concepts. Only produce the structure.",
+    'Shape: {"topic":"...","units":[{"unit_id":1,"title":"...","description":"short description of the unit","subunits":[{"subunit_id":"1.1","title":"...","key_concepts":["concept1","concept2"],"prerequisites":[]}]}]}',
+    '"prerequisites" on a subunit lists the subunit_id(s) (e.g. "1.1") of subunits that must be understood first; empty array if none.',
     "Plain text only inside every JSON string value: no LaTeX, no backslashes, no markdown. Spell things out (e.g. \"CO2\" not \"\\text{CO}_2\") — this must be valid JSON that a strict parser can read.",
   ].join("\n");
 }
