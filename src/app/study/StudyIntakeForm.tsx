@@ -211,7 +211,7 @@ export default function StudyIntakeForm() {
 
   if (hydrating) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-white/70">
+      <div className="card-deep rounded-2xl p-6 text-white/70">
         <p className="flex items-center gap-3 text-sm">
           <LoadingSpinner size={18} label="Loading" />
           Loading your saved syllabi...
@@ -237,7 +237,7 @@ export default function StudyIntakeForm() {
       <p className="mb-4 text-sm text-white/70">
         Tell us a bit about your goal so we can build a tailored syllabus.
       </p>
-      <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 p-5 text-white/80">
+      <div className="card-deep mb-6 rounded-2xl p-5 text-white/80">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-white">Previous syllabi</p>
@@ -348,7 +348,7 @@ export default function StudyIntakeForm() {
               className="absolute inset-0"
               aria-label="Close syllabus menu"
             />
-            <aside className="relative flex h-full w-full max-w-sm flex-col gap-4 border-l border-white/10 bg-white/10 p-6 text-white shadow-2xl backdrop-blur">
+            <aside className="card-deep relative flex h-full w-full max-w-sm flex-col gap-4 p-6 text-white shadow-2xl">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">

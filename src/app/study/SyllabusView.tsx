@@ -434,7 +434,7 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
         </div>
       ) : null}
       <div
-        className={`rounded-2xl border border-white/10 bg-white/10 text-white shadow-xl backdrop-blur ${
+        className={`card-deep rounded-2xl text-white ${
           compact ? "p-4" : "p-6"
         }`}
       >
@@ -456,7 +456,7 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
       {syllabus.units.map((unit) => (
         <div
           key={unit.unit_id}
-          className={`rounded-2xl border border-white/10 bg-white/5 text-white shadow-lg backdrop-blur ${
+          className={`card-deep rounded-2xl text-white ${
             compact ? "p-4" : "p-6"
           }`}
         >
@@ -491,7 +491,7 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
               return (
                 <div
                   key={subunit.subunit_id}
-                  className="rounded-xl border border-white/10 bg-white/10 p-4"
+                  className="card-deep rounded-xl p-4"
                   data-testid={`subunit-${subunit.subunit_id}`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -574,7 +574,7 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
       <section
         id="study-chat-panel"
-        className="flex flex-col self-start rounded-2xl border border-white/10 bg-white/10 p-4 text-white shadow-xl backdrop-blur sm:p-6 lg:self-start"
+        className="card-deep flex flex-col self-start rounded-2xl p-4 text-white sm:p-6 lg:self-start"
       >
         <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
           <div>
