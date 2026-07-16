@@ -79,6 +79,14 @@ body {
   .app-logo img {
     height: 40px;
   }
+
+  /* Clearance for the floating bottom tab bar (BottomTabBar.tsx) so page
+     content — chat inputs, last list items, etc. — never sits behind it.
+     Bar is ~64px tall + 16px bottom margin; padding covers that plus
+     breathing room. */
+  .app-shell-content {
+    padding-bottom: 6.5rem;
+  }
 }
 
 .select-dark {

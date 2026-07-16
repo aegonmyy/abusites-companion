@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import AppLogo from "@/components/AppLogo";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import BottomTabBar from "@/components/BottomTabBar";
+import HeaderIcons from "@/components/HeaderIcons";
 
 export const metadata: Metadata = {
   title: "Grinnish Local",
@@ -21,7 +23,9 @@ export default function RootLayout({
           <div className="app-brand">
             <AppLogo />
           </div>
-          {children}
+          <HeaderIcons />
+          <div className="app-shell-content">{children}</div>
+          <BottomTabBar />
           <ServiceWorkerRegister />
         </div>
       </body>
