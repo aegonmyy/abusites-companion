@@ -87,37 +87,6 @@ export function explainQuestionSystemPrompt(language: Language): string {
   ].join("\n");
 }
 
-export function notesSummarySystemPrompt(language: Language): string {
-  return [
-    BASE,
-    languageLine(language),
-    "Given raw study material (notes, extracted PDF/image text), produce strict JSON only: " +
-      '{"summary":"...","key_concepts":["..."],"quiz":[{"question":"...","options":["A","B","C","D"],"correct_index":0}]}',
-    "Summary must be compact (a few sentences). 3-6 key concepts. 3-5 quiz questions.",
-  ].join("\n");
-}
-
-export function imageExplainSystemPrompt(language: Language): string {
-  return [
-    BASE,
-    languageLine(language),
-    "The student has shared a photo (e.g. a handwritten question or textbook page). Read it carefully, then answer or explain it directly. If the image is unclear, say so briefly and ask for a clearer photo instead of guessing.",
-  ].join("\n");
-}
-
-/** Same JSON contract as notesSummarySystemPrompt, but the source is a photo
- * (textbook page, handwritten notes) instead of pasted text. */
-export function notesSummaryFromImageSystemPrompt(language: Language): string {
-  return [
-    BASE,
-    languageLine(language),
-    "The student has shared a photo of study material (textbook page, handwritten notes, slide). Read the text in the image carefully, then produce strict JSON only: " +
-      '{"summary":"...","key_concepts":["..."],"quiz":[{"question":"...","options":["A","B","C","D"],"correct_index":0}]}',
-    "Summary must be compact (a few sentences). 3-6 key concepts. 3-5 quiz questions. If the image is unreadable, return a summary saying so and an empty key_concepts/quiz array — do not invent content.",
-    "Plain text only inside every JSON string value: no LaTeX, no backslashes, no markdown.",
-  ].join("\n");
-}
-
 /**
  * Notes' fast structure call (routeTag "json"). Mirrors
  * syllabusGenerationSystemPrompt's shape exactly: cheap, shallow, a table of

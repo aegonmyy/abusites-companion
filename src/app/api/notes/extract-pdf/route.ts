@@ -9,10 +9,10 @@ const MAX_UPLOAD_BYTES = 20 * 1024 * 1024; // 20MB — generous for a scanned-te
  * Server-side PDF text extraction for the Notes "PDF" intake mode. Runs
  * entirely locally (pdfjs-dist, no network). Returns extracted text; the
  * client then feeds that text through the exact same
- * notesSummarySystemPrompt / /api/llm ("json") path as the "paste text"
- * mode — this route only handles the extraction step, not summarization,
- * so every model call still funnels through the single /api/llm entry
- * point.
+ * notesSegmentSplitSystemPrompt / /api/llm ("json") path as the "paste text"
+ * mode — this route only handles the extraction step, not the segment
+ * split, so every model call still funnels through the single /api/llm
+ * entry point.
  */
 export async function POST(request: Request) {
   let formData: FormData;
