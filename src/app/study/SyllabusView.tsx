@@ -434,7 +434,7 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
         </div>
       ) : null}
       <div
-        className={`card-deep rounded-2xl border border-white/10 text-white shadow-xl backdrop-blur ${
+        className={`rounded-2xl border border-white/10 bg-white/10 text-white shadow-xl backdrop-blur ${
           compact ? "p-4" : "p-6"
         }`}
       >
@@ -574,7 +574,7 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
       <section
         id="study-chat-panel"
-        className="card-deep flex flex-col self-start rounded-2xl border border-white/10 p-4 text-white shadow-xl backdrop-blur sm:p-6 lg:self-start"
+        className="flex flex-col self-start rounded-2xl border border-white/10 bg-white/10 p-4 text-white shadow-xl backdrop-blur sm:p-6 lg:self-start"
       >
         <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
           <div>

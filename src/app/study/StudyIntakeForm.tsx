@@ -344,7 +344,7 @@ export default function StudyIntakeForm() {
               className="absolute inset-0"
               aria-label="Close syllabus menu"
             />
-            <aside className="card-deep relative flex h-full w-full max-w-sm flex-col gap-4 border-l border-white/10 p-6 text-white shadow-2xl backdrop-blur">
+            <aside className="relative flex h-full w-full max-w-sm flex-col gap-4 border-l border-white/10 bg-white/10 p-6 text-white shadow-2xl backdrop-blur">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">

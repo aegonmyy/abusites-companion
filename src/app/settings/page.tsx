@@ -92,8 +92,10 @@ export default function SettingsPage() {
                 return (
                   <label
                     key={opt.value}
-                    className={`card-deep flex cursor-pointer items-start gap-3 rounded-2xl border p-4 shadow-xl backdrop-blur transition ${
-                      active ? "border-emerald-300/50" : "border-white/10 hover:border-white/30"
+                    className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-4 shadow-xl backdrop-blur transition ${
+                      active
+                        ? "border-emerald-300/50 bg-white/15"
+                        : "border-white/10 bg-white/10 hover:border-white/30"
                     }`}
                   >
                     <input
@@ -114,7 +116,7 @@ export default function SettingsPage() {
               })}
             </fieldset>
 
-            <fieldset className="card-deep flex flex-col gap-5 rounded-2xl border border-white/10 p-4 shadow-xl backdrop-blur">
+            <fieldset className="flex flex-col gap-5 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-xl backdrop-blur">
               <legend className="mb-1 text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
                 Response tuning
               </legend>
@@ -164,7 +166,7 @@ export default function SettingsPage() {
               </label>
             </fieldset>
 
-            <div className="card-deep rounded-2xl border border-white/10 p-4 text-sm text-white/70 shadow-xl backdrop-blur">
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-4 text-sm text-white/70 shadow-xl backdrop-blur">
               Model:{" "}
               <span className="font-mono text-white">gemma4:e2b</span> (fixed for
               this build — the larger e4b variant is only ever enabled after

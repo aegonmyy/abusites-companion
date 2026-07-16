@@ -243,7 +243,7 @@ export default function NewNotePage() {
               ))}
             </div>
 
-            <section className="card-deep rounded-3xl border border-white/10 p-6 text-white shadow-2xl backdrop-blur">
+            <section className="rounded-3xl border border-white/10 bg-white/10 p-6 text-white shadow-2xl backdrop-blur">
               <div className="flex flex-col gap-5">
                 <label className="flex flex-col gap-1.5 text-sm font-semibold text-white/90">
                   Title (optional)

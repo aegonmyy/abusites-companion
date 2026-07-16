@@ -112,9 +112,10 @@ body {
 
 /* Pill-shaped select matching the app's rounded-full buttons (Start CBT,
  * View past questions, etc.) — used for the course selector, which
- * previously used the bare, unstyled `.select-dark` above. Same
- * `card-deep` dark fill, a real visible border, and focus/hover states
- * consistent with other interactive controls in this app. */
+ * previously used the bare, unstyled `.select-dark` above. Same dark
+ * fill as Past Questions' modal (`#08111d`), a real visible border, and
+ * focus/hover states consistent with other interactive controls in this
+ * app. */
 .select-pill {
   appearance: none;
   -webkit-appearance: none;
@@ -184,19 +185,6 @@ button[data-selected="true"],
     0 0 0 2px rgba(16, 185, 129, 0.55),
     0 10px 24px rgba(16, 185, 129, 0.25);
   filter: brightness(1.05);
-}
-
-/* Shared "deep" card surface — promoted from Past Questions' darker,
- * more opaque modal treatment (`#08111d`) to replace the lighter
- * `bg-white/10` glass used elsewhere. Applied as a card *fill* over the
- * ambient `.app-shell` gradient, not a flat page background, so the glow
- * still shows around/behind cards — same border/backdrop-blur as before,
- * only the fill gets darker. Defined once here (unlayered, so it beats
- * Tailwind's `bg-white/10` utility in the cascade the same way
- * `.nav-button`/`.select-dark` already do) and reused via className
- * rather than repeating the hex per file. */
-.card-deep {
-  background-color: #08111d;
 }
 
 .nav-button {

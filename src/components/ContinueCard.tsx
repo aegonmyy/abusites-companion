@@ -33,7 +33,7 @@ export default function ContinueCard() {
 
   if (!data) {
     return (
-      <div className="card-deep rounded-2xl border border-white/10 p-6 text-sm text-white/70 shadow-xl backdrop-blur">
+      <div className="rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70 shadow-xl backdrop-blur">
         Loading…
       </div>
     );
@@ -43,7 +43,7 @@ export default function ContinueCard() {
     return (
       <div
         data-testid="continue-card-empty"
-        className="card-deep rounded-2xl border border-white/10 p-6 text-sm text-white/70 shadow-xl backdrop-blur"
+        className="rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70 shadow-xl backdrop-blur"
       >
         Nothing yet — start below.
       </div>
@@ -54,7 +54,7 @@ export default function ContinueCard() {
     <Link
       href={data.href}
       data-testid="continue-card"
-      className="card-deep block rounded-2xl border border-white/10 p-6 shadow-xl backdrop-blur transition hover:border-white/30"
+      className="block rounded-2xl border border-white/10 bg-white/10 p-6 shadow-xl backdrop-blur transition hover:border-white/30"
     >
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
         {data.type === "subunit" ? "Continue studying" : "Continue reading"}

@@ -209,7 +209,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
 
             {note.quiz.length > 0 && (
               <div
-                className="card-deep rounded-2xl border border-white/10 p-6 shadow-xl backdrop-blur"
+                className="rounded-2xl border border-white/10 bg-white/10 p-6 shadow-xl backdrop-blur"
                 data-testid="note-quiz"
               >
                 <div className="mb-4 flex items-center justify-between">
@@ -265,7 +265,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
               </div>
             )}
 
-            <div className="card-deep flex min-h-[18rem] flex-col gap-3 rounded-2xl border border-white/10 p-5 text-white shadow-xl backdrop-blur">
+            <div className="flex min-h-[18rem] flex-col gap-3 rounded-2xl border border-white/10 bg-white/10 p-5 text-white shadow-xl backdrop-blur">
               <span className="text-sm font-semibold text-white">Ask about this note</span>
               <div className="flex flex-1 flex-col gap-3 overflow-y-auto" data-testid="note-chat-log">
                 {chat.map((m, i) => (
