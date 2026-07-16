@@ -134,9 +134,8 @@ export default function QuestionOfDayCard() {
         data-testid="qotd-empty"
         className="card-deep card-deep-glow rounded-2xl p-6 text-sm text-white/70"
       >
-        No question of the day yet — the past-questions catalog is empty on
-        this machine. Once past questions are seeded, one will appear here
-        automatically.
+        No question of the day yet. This shows up automatically once your
+        past questions are loaded.
       </div>
     );
   }

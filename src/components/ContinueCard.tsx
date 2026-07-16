@@ -47,7 +47,7 @@ export default function ContinueCard() {
         data-testid="continue-card-empty"
         className="card-deep card-deep-glow rounded-2xl p-6 text-sm text-white/70"
       >
-        Nothing yet — start below.
+        Nothing to continue yet. Pick something below to get started.
       </div>
     );
   }

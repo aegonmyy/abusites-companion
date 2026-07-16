@@ -84,8 +84,7 @@ export default function DashboardPage() {
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="mt-2 text-sm text-white/70">
-              Welcome back. Everything below runs on this machine — no network
-              required once the model is downloaded.
+              Welcome back. What do you want to learn today?
             </p>
           </div>
         </header>
