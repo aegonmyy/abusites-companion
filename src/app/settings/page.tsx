@@ -72,7 +72,7 @@ export default function SettingsPage() {
           <div>
             <h1 className="text-3xl font-semibold text-white">Settings</h1>
             <p className="mt-2 text-sm text-white/70">
-              Everything below runs entirely on this machine. No account, no login.
+              No account, no login, nothing leaves your device.
             </p>
           </div>
           <Link href="/" className="nav-button rounded-full px-4 py-2 text-sm font-semibold">
@@ -170,9 +170,8 @@ export default function SettingsPage() {
 
             <div className="card-deep rounded-2xl p-4 text-sm text-white/70">
               Model:{" "}
-              <span className="font-mono text-white">gemma4:e2b</span> (fixed for
-              this build — the larger e4b variant is only ever enabled after
-              verified-stable memory testing on the demo hardware).
+              <span className="font-mono text-white">gemma4:e2b</span>, chosen
+              for reliable performance on modest hardware.
               {saving && <span className="ml-2 text-white/50">Saving…</span>}
             </div>
           </div>

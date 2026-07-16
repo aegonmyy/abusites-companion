@@ -41,8 +41,8 @@ export default function NotesPage() {
           <div>
             <h1 className="text-3xl font-semibold text-white">Notes</h1>
             <p className="mt-2 max-w-2xl text-sm text-white/70">
-              Paste notes, upload a PDF, or snap a photo of study material — the
-              local model summarizes it, pulls out key concepts, and builds a quiz.
+              Paste notes, upload a PDF, or snap a photo. It gets split into
+              segments you can open one at a time, with a quiz whenever you're ready.
             </p>
           </div>
           <div className="flex items-center gap-2">

@@ -238,9 +238,8 @@ export default function NewNotePage() {
               Turn raw notes into active recall.
             </h1>
             <p className="mt-3 max-w-2xl text-sm text-white/70">
-              Paste text, upload a PDF, or snap a photo — the local model splits it
-              into segments immediately. Open a segment to generate its deep
-              explanation on demand.
+              Paste text, upload a PDF, or snap a photo. It gets split into
+              segments right away. Open a segment to see it explained in depth.
             </p>
           </div>
           <a
@@ -285,7 +284,7 @@ export default function NewNotePage() {
                     onChange={(e) => setTitle(e.target.value)}
                     data-testid="note-title-input"
                     className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-normal text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
-                    placeholder="e.g. Photosynthesis — chapter 4"
+                    placeholder="e.g. Photosynthesis, chapter 4"
                   />
                 </label>
 
@@ -327,9 +326,9 @@ export default function NewNotePage() {
                       </div>
                     )}
                     <p className="text-xs text-white/40">
-                      Text extraction happens locally (no upload leaves this machine).
-                      Scanned-image-only PDFs with no text layer won&apos;t work — use
-                      Photo mode for those instead.
+                      Nothing leaves your device. Scanned PDFs with no
+                      selectable text won&apos;t work, use Photo mode for
+                      those instead.
                     </p>
                   </div>
                 )}
@@ -386,7 +385,7 @@ export default function NewNotePage() {
                     ))}
                   </div>
                   <p className="text-xs font-normal text-white/40">
-                    Applies when you open a segment later — you can&apos;t change it for
+                    Applies when you open a segment later. You can&apos;t change it for
                     this note afterward.
                   </p>
                 </div>
