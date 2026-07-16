@@ -1,5 +1,11 @@
 "use client";
 
+// Note detail. Data logic (load note, quiz scoring, note-scoped chat + voice
+// via /api/llm, bookmark, delete) is the local target's, unchanged. Markup is
+// rebuilt in Grinnish's vocabulary: glass cards, concept chips as bordered
+// pills, dark option buttons, and the Grinnish study-chat bubbles
+// (self-end bg-white/15 / self-start bg-white/5) for the follow-up chat.
+
 import { use, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import MathText from "@/components/MathText";
@@ -140,130 +146,152 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     }
   }
 
-  if (!note) {
-    return <p className="text-sm muted">Loading note…</p>;
-  }
-
   return (
-    <div className="flex flex-col gap-4" data-testid="note-detail-page">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold">{note.title}</h1>
-          <MathText as="p" className="text-sm muted mt-1" text={note.summary} />
-        </div>
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
-          <button type="button" onClick={bookmark} data-testid="bookmark-note-button" className="text-xs font-medium" style={{ color: "var(--primary)" }}>
-            {bookmarked ? "Bookmarked" : "Bookmark"}
-          </button>
-          <button type="button" onClick={remove} data-testid="delete-note-button" className="text-xs font-medium" style={{ color: "var(--bad)" }}>
-            Delete
-          </button>
-        </div>
-      </div>
-
-      {note.keyConcepts.length > 0 && (
-        <div className="flex flex-wrap gap-2" data-testid="note-key-concepts">
-          {note.keyConcepts.map((k, i) => (
-            <span key={i} className="chip">
-              {k}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {note.quiz.length > 0 && (
-        <div className="card p-5" data-testid="note-quiz">
-          <div className="flex items-center justify-between mb-3">
-            <span className="font-semibold text-sm">Quiz</span>
-            {submitted && (
-              <span data-testid="note-quiz-score" className="text-sm font-semibold" style={{ color: "var(--primary)" }}>
-                {score} / {note.quiz.length}
-              </span>
-            )}
-          </div>
-          <ol className="flex flex-col gap-4">
-            {note.quiz.map((q, qi) => (
-              <li key={qi}>
-                <MathText as="p" className="text-sm font-medium mb-1.5" text={`${qi + 1}. ${q.question}`} />
-                <div className="flex flex-col gap-1.5">
-                  {q.options.map((opt, oi) => (
-                    <button
-                      key={oi}
-                      type="button"
-                      disabled={submitted}
-                      onClick={() => choose(qi, oi)}
-                      data-testid={`note-quiz-q${qi}-opt${oi}`}
-                      className={
-                        "option " +
-                        (submitted
-                          ? oi === q.correct_index
-                            ? "option-correct"
-                            : answers[qi] === oi
-                              ? "option-wrong"
-                              : ""
-                          : answers[qi] === oi
-                            ? "option-selected"
-                            : "")
-                      }
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              </li>
-            ))}
-          </ol>
-          {!submitted && (
-            <button
-              type="button"
-              onClick={() => setSubmitted(true)}
-              data-testid="note-quiz-submit"
-              className="btn btn-primary mt-4"
-            >
-              Submit
-            </button>
-          )}
-        </div>
-      )}
-
-      <div className="card p-4 flex flex-col gap-3 min-h-[18rem]">
-        <span className="font-semibold text-sm">Ask about this note</span>
-        <div className="flex-1 flex flex-col gap-2 overflow-y-auto" data-testid="note-chat-log">
-          {chat.map((m, i) => (
-            <div
-              key={i}
-              className={"bubble " + (m.role === "user" ? "bubble-user" : "bubble-assistant")}
-            >
-              <MathText text={m.content} />
+    <div className="min-h-screen px-6 py-12">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5" data-testid="note-detail-page">
+        {!note ? (
+          <p className="text-sm text-white/70">Loading note…</p>
+        ) : (
+          <>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-semibold text-white">{note.title}</h1>
+                <MathText as="p" className="mt-2 text-sm text-white/70" text={note.summary} />
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-2">
+                <button
+                  type="button"
+                  onClick={bookmark}
+                  data-testid="bookmark-note-button"
+                  className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-white/80 hover:border-white/40"
+                >
+                  {bookmarked ? "Bookmarked" : "Bookmark"}
+                </button>
+                <button
+                  type="button"
+                  onClick={remove}
+                  data-testid="delete-note-button"
+                  className="rounded-full border border-rose-300/40 px-3 py-1 text-xs font-semibold text-rose-200 hover:border-rose-300/70"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
-          ))}
-          <div ref={bottomRef} />
-        </div>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            send();
-          }}
-          className="flex gap-2 items-center"
-        >
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask a follow-up…"
-            data-testid="note-chat-input"
-            className="field flex-1"
-          />
-          <button
-            type="submit"
-            disabled={streaming}
-            data-testid="note-chat-send-button"
-            className="btn-icon btn-icon-primary"
-            aria-label="Send"
-          >
-            <SendGlyph />
-          </button>
-          <MicButton disabled={streaming} onRecorded={sendAudio} />
-        </form>
+
+            {note.keyConcepts.length > 0 && (
+              <div className="flex flex-wrap gap-2" data-testid="note-key-concepts">
+                {note.keyConcepts.map((k, i) => (
+                  <span
+                    key={i}
+                    className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs text-white/70"
+                  >
+                    {k}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {note.quiz.length > 0 && (
+              <div
+                className="rounded-2xl border border-white/10 bg-white/10 p-6 shadow-xl backdrop-blur"
+                data-testid="note-quiz"
+              >
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-white">Quiz</span>
+                  {submitted && (
+                    <span data-testid="note-quiz-score" className="text-sm font-semibold text-emerald-200">
+                      {score} / {note.quiz.length}
+                    </span>
+                  )}
+                </div>
+                <ol className="flex flex-col gap-5">
+                  {note.quiz.map((q, qi) => (
+                    <li key={qi}>
+                      <MathText as="p" className="mb-2 text-sm font-medium text-white" text={`${qi + 1}. ${q.question}`} />
+                      <div className="flex flex-col gap-2">
+                        {q.options.map((opt, oi) => {
+                          const state = submitted
+                            ? oi === q.correct_index
+                              ? "border-emerald-400/70 bg-emerald-500/10 text-emerald-50"
+                              : answers[qi] === oi
+                                ? "border-rose-400/70 bg-rose-500/10 text-rose-100"
+                                : "border-white/10 bg-white/5 text-white"
+                            : answers[qi] === oi
+                              ? "border-emerald-400/70 bg-emerald-500/10 text-white"
+                              : "border-white/10 bg-white/5 text-white hover:border-white/30";
+                          return (
+                            <button
+                              key={oi}
+                              type="button"
+                              disabled={submitted}
+                              onClick={() => choose(qi, oi)}
+                              data-testid={`note-quiz-q${qi}-opt${oi}`}
+                              className={`w-full rounded-xl border px-4 py-2.5 text-left text-sm transition ${state}`}
+                            >
+                              {opt}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+                {!submitted && (
+                  <button
+                    type="button"
+                    onClick={() => setSubmitted(true)}
+                    data-testid="note-quiz-submit"
+                    className="mt-5 rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-900"
+                  >
+                    Submit
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div className="flex min-h-[18rem] flex-col gap-3 rounded-2xl border border-white/10 bg-white/10 p-5 text-white shadow-xl backdrop-blur">
+              <span className="text-sm font-semibold text-white">Ask about this note</span>
+              <div className="flex flex-1 flex-col gap-3 overflow-y-auto" data-testid="note-chat-log">
+                {chat.map((m, i) => (
+                  <div
+                    key={i}
+                    className={`rounded-2xl px-4 py-3 text-sm ${
+                      m.role === "user" ? "self-end bg-white/15 text-white" : "self-start bg-white/5 text-white/80"
+                    }`}
+                  >
+                    <MathText text={m.content} />
+                  </div>
+                ))}
+                <div ref={bottomRef} />
+              </div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  send();
+                }}
+                className="flex items-center gap-2 border-t border-white/10 pt-3"
+              >
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask a follow-up…"
+                  data-testid="note-chat-input"
+                  className="flex-1 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={streaming}
+                  data-testid="note-chat-send-button"
+                  className="inline-flex h-11 min-w-[44px] items-center justify-center rounded-full bg-white text-slate-900 disabled:opacity-60"
+                  aria-label="Send"
+                >
+                  <SendGlyph />
+                </button>
+                <MicButton disabled={streaming} onRecorded={sendAudio} />
+              </form>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

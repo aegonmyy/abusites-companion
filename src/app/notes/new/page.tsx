@@ -1,5 +1,11 @@
 "use client";
 
+// New-note screen. Data logic (text / PDF-extract / photo-base64 -> /api/llm
+// -> /api/notes) is the local target's, unchanged. The markup is rebuilt in
+// Grinnish's vocabulary: the max-w header with glow blobs, the Grinnish tab
+// pills (Notes screen "Notes"/"Quiz & fun" pill styling), a glass source card,
+// dashed upload zones, and the white "Generate notes" pill button.
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseModelJson } from "@/lib/parse-model-json";
@@ -10,7 +16,6 @@ type ParsedNote = {
   quiz?: unknown[];
 };
 
-/** Strips the "data:image/...;base64," prefix — Ollama's images field wants raw base64. */
 function stripDataUrlPrefix(dataUrl: string): string {
   const comma = dataUrl.indexOf(",");
   return comma === -1 ? dataUrl : dataUrl.slice(comma + 1);
@@ -27,10 +32,7 @@ function fileToBase64(file: File): Promise<string> {
 
 function UploadGlyph() {
   return (
-    <span
-      className="inline-flex items-center justify-center rounded-full"
-      style={{ width: 44, height: 44, background: "var(--primary-soft)", color: "var(--primary)" }}
-    >
+    <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white/80">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d="M12 16V5" />
         <path d="m7 10 5-5 5 5" />
@@ -39,6 +41,12 @@ function UploadGlyph() {
     </span>
   );
 }
+
+const TABS: { value: "text" | "pdf" | "image"; label: string; testid: string }[] = [
+  { value: "text", label: "Paste text", testid: "mode-text-tab" },
+  { value: "pdf", label: "PDF", testid: "mode-pdf-tab" },
+  { value: "image", label: "Photo", testid: "mode-image-tab" },
+];
 
 export default function NewNotePage() {
   const router = useRouter();
@@ -150,7 +158,12 @@ export default function NewNotePage() {
       const parsed = parseModelJson(jsonMatch[0]) as ParsedNote;
       if (!parsed.summary) throw new Error("Model's response had no summary.");
 
-      const defaultTitle = mode === "text" ? rawText.slice(0, 60) : mode === "pdf" ? pdfFile!.name.replace(/\.pdf$/i, "") : "Photo note";
+      const defaultTitle =
+        mode === "text"
+          ? rawText.slice(0, 60)
+          : mode === "pdf"
+            ? pdfFile!.name.replace(/\.pdf$/i, "")
+            : "Photo note";
       const noteRes = await fetch("/api/notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -178,149 +191,155 @@ export default function NewNotePage() {
   const busy = status === "extracting" || status === "generating";
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4" data-testid="new-note-form">
-      <div>
-        <h1 className="text-xl font-semibold">New note</h1>
-        <p className="text-sm muted mt-1">
-          Paste text, upload a PDF, or snap a photo — the local model reads it and builds a
-          summary, key concepts, and a short quiz.
-        </p>
-      </div>
-
-      <div className="flex gap-2 flex-wrap" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          data-testid="mode-text-tab"
-          aria-selected={mode === "text"}
-          onClick={() => setMode("text")}
-          className={"tab" + (mode === "text" ? " tab-active" : "")}
-        >
-          Paste text
-        </button>
-        <button
-          type="button"
-          role="tab"
-          data-testid="mode-pdf-tab"
-          aria-selected={mode === "pdf"}
-          onClick={() => setMode("pdf")}
-          className={"tab" + (mode === "pdf" ? " tab-active" : "")}
-        >
-          PDF
-        </button>
-        <button
-          type="button"
-          role="tab"
-          data-testid="mode-image-tab"
-          aria-selected={mode === "image"}
-          onClick={() => setMode("image")}
-          className={"tab" + (mode === "image" ? " tab-active" : "")}
-        >
-          Photo
-        </button>
-      </div>
-
-      <div className="card p-5 flex flex-col gap-4">
-        <label className="flex flex-col gap-1.5 text-sm font-medium">
-          Title (optional)
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            data-testid="note-title-input"
-            className="field font-normal"
-            placeholder="e.g. Photosynthesis — chapter 4"
-          />
-        </label>
-
-        {mode === "text" && (
-          <label className="flex flex-col gap-1.5 text-sm font-medium">
-            Notes text
-            <textarea
-              value={rawText}
-              onChange={(e) => setRawText(e.target.value)}
-              data-testid="note-text-input"
-              className="field font-normal"
-              rows={8}
-              placeholder="Paste your notes here…"
-            />
-          </label>
-        )}
-
-        {mode === "pdf" && (
-          <div className="flex flex-col gap-2 text-sm">
-            <label
-              className="flex flex-col items-center justify-center gap-2 text-center cursor-pointer px-4 py-8 rounded-xl"
-              style={{ border: "2px dashed var(--border-strong)", background: "var(--card-muted)" }}
-            >
-              <UploadGlyph />
-              <span className="text-sm">
-                <span className="faint">Drop your PDF here and </span>
-                <span style={{ color: "var(--primary)", fontWeight: 600 }}>Browse</span>
-              </span>
-              <input
-                type="file"
-                accept="application/pdf,.pdf"
-                onChange={onPdfChange}
-                data-testid="note-pdf-input"
-                className="sr-only"
-              />
-            </label>
-            {pdfFile && (
-              <div className="flex items-center gap-2 text-sm">
-                <span className="chip">.PDF</span>
-                <span className="muted">{pdfFile.name}</span>
-              </div>
-            )}
-            <p className="text-xs faint">
-              Text extraction happens locally (no upload leaves this machine). Scanned-image-only
-              PDFs with no text layer won&apos;t work — use the Photo mode for those instead.
+    <div className="min-h-screen px-6 py-12">
+      <div className="mx-auto w-full max-w-3xl">
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold text-white sm:text-4xl">
+              Turn raw notes into active recall.
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm text-white/70">
+              Paste text, upload a PDF, or snap a photo — the local model reads it
+              and builds a summary, key concepts, and a short quiz.
             </p>
           </div>
-        )}
+          <a
+            href="/notes"
+            className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold text-white/70 transition hover:border-white/40"
+          >
+            Back to notes
+          </a>
+        </div>
 
-        {mode === "image" && (
-          <div className="flex flex-col gap-2 text-sm">
-            <label
-              className="flex flex-col items-center justify-center gap-2 text-center cursor-pointer px-4 py-8 rounded-xl"
-              style={{ border: "2px dashed var(--border-strong)", background: "var(--card-muted)" }}
-            >
-              <UploadGlyph />
-              <span className="text-sm">
-                <span className="faint">Drop a photo here and </span>
-                <span style={{ color: "var(--primary)", fontWeight: 600 }}>Browse</span>
-              </span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={onImageChange}
-                data-testid="note-image-input"
-                className="sr-only"
-              />
-            </label>
-            {imagePreview && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={imagePreview}
-                alt="Preview"
-                data-testid="note-image-preview"
-                className="max-h-64 rounded-xl object-contain"
-                style={{ border: "1px solid var(--border)" }}
-              />
-            )}
-          </div>
-        )}
+        <div className="relative">
+          <div className="pointer-events-none absolute -left-24 top-16 h-56 w-56 rounded-full bg-emerald-500/20 blur-[90px]" />
+          <div className="pointer-events-none absolute right-4 top-6 h-64 w-64 rounded-full bg-sky-500/20 blur-[110px]" />
+
+          <form onSubmit={handleSubmit} className="relative" data-testid="new-note-form">
+            <div className="mb-6 flex flex-wrap items-center gap-3" role="tablist">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.value}
+                  type="button"
+                  role="tab"
+                  data-testid={tab.testid}
+                  aria-selected={mode === tab.value}
+                  onClick={() => setMode(tab.value)}
+                  className={`rounded-full px-4 py-2 text-xs font-semibold ${
+                    mode === tab.value
+                      ? "border border-white/60 bg-white text-slate-900"
+                      : "border border-white/20 bg-white/5 text-white/70 hover:border-white/40"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <section className="rounded-3xl border border-white/10 bg-white/10 p-6 text-white shadow-2xl backdrop-blur">
+              <div className="flex flex-col gap-5">
+                <label className="flex flex-col gap-1.5 text-sm font-semibold text-white/90">
+                  Title (optional)
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    data-testid="note-title-input"
+                    className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-normal text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                    placeholder="e.g. Photosynthesis — chapter 4"
+                  />
+                </label>
+
+                {mode === "text" && (
+                  <label className="flex flex-col gap-1.5 text-sm font-semibold text-white/90">
+                    Notes text
+                    <textarea
+                      value={rawText}
+                      onChange={(e) => setRawText(e.target.value)}
+                      data-testid="note-text-input"
+                      rows={10}
+                      className="w-full resize-none rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-normal text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                      placeholder="Paste your notes here…"
+                    />
+                  </label>
+                )}
+
+                {mode === "pdf" && (
+                  <div className="flex flex-col gap-2 text-sm">
+                    <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-white/20 bg-white/5 px-4 py-8 text-center">
+                      <UploadGlyph />
+                      <span className="text-sm text-white/70">
+                        Drop your PDF here and <span className="font-semibold text-white">Browse</span>
+                      </span>
+                      <input
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        onChange={onPdfChange}
+                        data-testid="note-pdf-input"
+                        className="sr-only"
+                      />
+                    </label>
+                    {pdfFile && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs font-semibold text-white/70">
+                          .PDF
+                        </span>
+                        <span className="text-white/60">{pdfFile.name}</span>
+                      </div>
+                    )}
+                    <p className="text-xs text-white/40">
+                      Text extraction happens locally (no upload leaves this machine).
+                      Scanned-image-only PDFs with no text layer won&apos;t work — use
+                      Photo mode for those instead.
+                    </p>
+                  </div>
+                )}
+
+                {mode === "image" && (
+                  <div className="flex flex-col gap-2 text-sm">
+                    <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-white/20 bg-white/5 px-4 py-8 text-center">
+                      <UploadGlyph />
+                      <span className="text-sm text-white/70">
+                        Drop a photo here and <span className="font-semibold text-white">Browse</span>
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={onImageChange}
+                        data-testid="note-image-input"
+                        className="sr-only"
+                      />
+                    </label>
+                    {imagePreview && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        data-testid="note-image-preview"
+                        className="max-h-64 rounded-xl border border-white/10 object-contain"
+                      />
+                    )}
+                  </div>
+                )}
+
+                {error && <p className="text-sm text-rose-300">{error}</p>}
+
+                <button
+                  type="submit"
+                  disabled={busy}
+                  data-testid="generate-note-button"
+                  className="w-full rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 disabled:opacity-60"
+                >
+                  {status === "extracting"
+                    ? "Reading PDF…"
+                    : status === "generating"
+                      ? "Summarizing…"
+                      : "Generate note"}
+                </button>
+              </div>
+            </section>
+          </form>
+        </div>
       </div>
-
-      {error && <p className="text-sm" style={{ color: "var(--bad)" }}>{error}</p>}
-
-      <button
-        type="submit"
-        disabled={busy}
-        data-testid="generate-note-button"
-        className="btn btn-primary btn-block"
-      >
-        {status === "extracting" ? "Reading PDF…" : status === "generating" ? "Summarizing…" : "Generate note"}
-      </button>
-    </form>
+    </div>
   );
 }
