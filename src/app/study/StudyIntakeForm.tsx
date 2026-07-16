@@ -9,6 +9,7 @@
 // single-page model). Previous syllabi come from GET /api/study/syllabus.
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import SyllabusView from "./SyllabusView";
 import { parseModelJson } from "@/lib/parse-model-json";
 import FullPageLoader from "@/components/FullPageLoader";
@@ -21,7 +22,11 @@ type SyllabusEntry = {
 };
 
 export default function StudyIntakeForm() {
-  const [topic, setTopic] = useState("");
+  const searchParams = useSearchParams();
+  // Prefills the topic field when arriving from a Home "Start something new"
+  // suggestion chip (?topic=...) — read once on mount, not re-applied on
+  // every render, so it never fights the user's own typing.
+  const [topic, setTopic] = useState(() => searchParams.get("topic") ?? "");
   const [goal, setGoal] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
