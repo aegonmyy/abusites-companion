@@ -74,7 +74,28 @@ on the same machine.
   GPU; verbose system prompts eat directly into latency and the
   `num_predict` budget for the actual reply.
 
-## Setup
+## Quick install (one line, nothing pre-installed required)
+
+On a machine that has nothing set up yet, this single command installs
+git/Node/Ollama if missing, clones the repo, pulls the model, builds, and
+starts the app, then opens it in your browser:
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/aegonmyy/Abu-hackathon/main/bootstrap.sh | bash
+```
+
+```powershell
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/aegonmyy/Abu-hackathon/main/bootstrap.ps1 | iex
+```
+
+Downloads the ~7GB model on first run (needs internet once); everything
+after that runs offline. Safe to re-run, later runs just pull the latest
+code and restart. See `bootstrap.sh` / `bootstrap.ps1` for exactly what
+each step does.
+
+## Setup (if you already have the repo cloned)
 
 Prerequisites: [Node.js 20+](https://nodejs.org),
 [Ollama](https://ollama.com/download).
