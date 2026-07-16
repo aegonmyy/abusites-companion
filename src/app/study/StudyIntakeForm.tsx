@@ -11,7 +11,7 @@
 import { useEffect, useState } from "react";
 import SyllabusView from "./SyllabusView";
 import { parseModelJson } from "@/lib/parse-model-json";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import FullPageLoader from "@/components/FullPageLoader";
 
 type SyllabusEntry = {
   id: string;
@@ -214,22 +214,7 @@ export default function StudyIntakeForm() {
   return (
     <>
       {submitting ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-6 backdrop-blur">
-          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/10 p-6 text-white shadow-2xl backdrop-blur">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full border border-white/20 p-2 text-white/80 flex items-center justify-center">
-                <LoadingSpinner size={20} label="Generating syllabus" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold">Generating syllabus</p>
-                <p className="text-xs text-white/60">Please hold tight.</p>
-              </div>
-            </div>
-            <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/80">
-              {loadingMessage}
-            </div>
-          </div>
-        </div>
+        <FullPageLoader message="Generating syllabus" subMessage={loadingMessage} />
       ) : null}
 
       <div className="mb-4 flex justify-end">
@@ -354,7 +339,7 @@ export default function StudyIntakeForm() {
               className="absolute inset-0"
               aria-label="Close syllabus menu"
             />
-            <aside className="relative flex h-full w-full max-w-sm flex-col gap-4 border-l border-white/10 bg-white/10 p-6 text-white shadow-2xl backdrop-blur">
+            <aside className="card-deep relative flex h-full w-full max-w-sm flex-col gap-4 border-l border-white/10 p-6 text-white shadow-2xl backdrop-blur">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">

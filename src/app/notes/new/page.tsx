@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseModelJson } from "@/lib/parse-model-json";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import FullPageLoader from "@/components/FullPageLoader";
 
 type ParsedNote = {
   summary?: string;
@@ -193,6 +194,11 @@ export default function NewNotePage() {
 
   return (
     <div className="min-h-screen px-6 py-12">
+      {busy ? (
+        <FullPageLoader
+          message={status === "extracting" ? "Reading PDF…" : "Summarizing…"}
+        />
+      ) : null}
       <div className="mx-auto w-full max-w-3xl">
         <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -237,7 +243,7 @@ export default function NewNotePage() {
               ))}
             </div>
 
-            <section className="rounded-3xl border border-white/10 bg-white/10 p-6 text-white shadow-2xl backdrop-blur">
+            <section className="card-deep rounded-3xl border border-white/10 p-6 text-white shadow-2xl backdrop-blur">
               <div className="flex flex-col gap-5">
                 <label className="flex flex-col gap-1.5 text-sm font-semibold text-white/90">
                   Title (optional)
