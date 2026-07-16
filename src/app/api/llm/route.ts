@@ -19,6 +19,16 @@ type LlmRequestBody = {
    * this call through the audio-capable OpenAI-compatible endpoint instead
    * of the native one. See ollamaChatAudioStream for why. */
   audio?: { base64: string; format: string };
+  /** Explicit per-call token-budget override, distinct from the Settings-
+   * driven "Response length" override below. Used by Notes: the segment-
+   * split call ("json") asks for a smaller budget than the full syllabus
+   * cap, and the per-segment deep-explanation call ("lesson") uses this to
+   * implement the three depth tiers (quick/standard/deep) as a per-request
+   * choice rather than new fixed NUM_PREDICT route entries. Takes priority
+   * over the Settings tokenBudget override when both are present, since it
+   * reflects a deliberate choice made for this specific call, not the
+   * user's general reply-length preference. Clamped defensively either way. */
+  numPredictOverride?: number;
 };
 
 /**
@@ -39,7 +49,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const { routeTag, messages, system, audio } = body;
+  const { routeTag, messages, system, audio, numPredictOverride: clientNumPredictOverride } = body;
 
   if (!routeTag || !["json", "lesson", "chat", "gloss", "audio"].includes(routeTag)) {
     return new Response(JSON.stringify({ error: "Invalid or missing routeTag." }), {
@@ -80,10 +90,15 @@ export async function POST(request: Request) {
     routeTag !== "json" && typeof settings?.temperature === "number"
       ? Math.min(1, Math.max(0, settings.temperature))
       : undefined;
-  const numPredictOverride =
+  const settingsNumPredictOverride =
     routeTag !== "json" && typeof settings?.tokenBudget === "number"
       ? Math.min(500, Math.max(80, Math.round(settings.tokenBudget)))
       : undefined;
+  const requestNumPredictOverride =
+    typeof clientNumPredictOverride === "number" && Number.isFinite(clientNumPredictOverride)
+      ? Math.min(2500, Math.max(80, Math.round(clientNumPredictOverride)))
+      : undefined;
+  const numPredictOverride = requestNumPredictOverride ?? settingsNumPredictOverride;
 
   let upstream: Response;
   let textStream: ReadableStream<Uint8Array>;

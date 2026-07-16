@@ -102,11 +102,15 @@ export async function ollamaChatStream({
   numPredictOverride,
   temperatureOverride,
 }: OllamaChatRequest): Promise<Response> {
-  // "json" is deliberately never overridable from Settings — low temperature
-  // there is what keeps small-model syllabus/note/prereq JSON parseable (see
-  // docs/AUDIO_FINDING.md sibling fix, "Force valid JSON at the decoder").
+  // "json" temperature is deliberately never overridable from Settings — low
+  // temperature there is what keeps small-model syllabus/note/prereq JSON
+  // parseable (see docs/AUDIO_FINDING.md sibling fix, "Force valid JSON at
+  // the decoder"). The token cap, however, *is* overridable for "json" too
+  // (numPredictOverride) — added for Notes' segment-split call, which is a
+  // cheap table-of-contents and doesn't need the full syllabus-sized 1500
+  // budget; callers that don't pass an override keep the existing 1500.
   const temperature = routeTag === "json" ? TEMPERATURE.json : temperatureOverride ?? TEMPERATURE[routeTag];
-  const numPredict = routeTag === "json" ? NUM_PREDICT.json : numPredictOverride ?? NUM_PREDICT[routeTag];
+  const numPredict = numPredictOverride ?? NUM_PREDICT[routeTag];
 
   const body = {
     model: model ?? DEFAULT_MODEL,

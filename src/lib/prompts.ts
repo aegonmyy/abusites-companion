@@ -100,6 +100,83 @@ export function notesSummaryFromImageSystemPrompt(language: Language): string {
   ].join("\n");
 }
 
+/**
+ * Notes' fast structure call (routeTag "json"). Mirrors
+ * syllabusGenerationSystemPrompt's shape exactly: cheap, shallow, a table of
+ * contents only — titles + one-line previews, never the actual deep
+ * explanation (that's notesSegmentExplanationSystemPrompt, generated later,
+ * on demand, per segment). Called "segments" rather than Study mode's
+ * "subunits" so the two features' data never get confused in code/schema.
+ */
+export function notesSegmentSplitSystemPrompt(language: Language): string {
+  return [
+    BASE,
+    languageLine(language),
+    "Given raw study material (notes, extracted PDF/image text), split it into conceptual segments — one segment per distinct idea or topic the material actually covers. Do not explain the concepts, only identify and title them; a one-line preview per segment, not the full content.",
+    "Return strict JSON only — no markdown fences, no prose outside the JSON.",
+    'Shape: {"title":"short title for the whole document","segments":[{"segment_id":"1","title":"...","summary":"one-line preview of what this segment covers"}]}',
+    "Segment count should match the material's actual structure: a short single-topic note may need only 2-3 segments, a longer multi-topic document more — never force a split that isn't really there, and never lump clearly distinct ideas into one segment.",
+    "Plain text only inside every JSON string value: no LaTeX, no backslashes, no markdown.",
+  ].join("\n");
+}
+
+/** Same JSON contract as notesSegmentSplitSystemPrompt, but the source is a
+ * photo (textbook page, handwritten notes) instead of pasted/extracted text. */
+export function notesSegmentSplitFromImageSystemPrompt(language: Language): string {
+  return [
+    BASE,
+    languageLine(language),
+    "The student has shared a photo of study material (textbook page, handwritten notes, slide). Read the text in the image carefully, then split it into conceptual segments — one segment per distinct idea or topic. Do not explain the concepts, only identify and title them.",
+    "Return strict JSON only — no markdown fences, no prose outside the JSON.",
+    'Shape: {"title":"short title for the whole document","segments":[{"segment_id":"1","title":"...","summary":"one-line preview of what this segment covers"}]}',
+    "If the image is unreadable, return a single segment titled \"Unreadable image\" with a summary saying so — do not invent content.",
+    "Plain text only inside every JSON string value: no LaTeX, no backslashes, no markdown.",
+  ].join("\n");
+}
+
+/**
+ * Notes' on-demand deep-explanation call (routeTag "lesson", streamed),
+ * generated once per segment when the student opens it — mirrors
+ * subunitTutorSystemPrompt's role exactly, but produces a single thorough
+ * explanation rather than a back-and-forth tutoring turn, and explicitly
+ * asks for depth (this whole feature exists because the old upfront
+ * "compact summary" wasn't what was wanted).
+ */
+export function notesSegmentExplanationSystemPrompt(
+  language: Language,
+  documentTitle: string,
+  segmentTitle: string,
+  segmentSummary: string,
+): string {
+  return [
+    BASE,
+    languageLine(language),
+    `You are explaining one segment of a document titled "${documentTitle}".`,
+    `Segment: "${segmentTitle}" — ${segmentSummary}`,
+    "Give a genuinely in-depth explanation of this segment: define the ideas, explain why they matter and how they connect, and include a short worked example or concrete illustration where it helps. This should read like a real explanation a student could learn from, not a compact summary.",
+    "Base the explanation on the segment's place in the source document (given above and in the material excerpt that follows) — do not wander into unrelated territory.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+/**
+ * Notes' deferred quiz call (routeTag "json"), triggered explicitly by the
+ * "Generate quiz" action rather than always at upload time — moving WHEN
+ * this runs, not what it produces. Same quiz JSON shape the app already
+ * knows how to render/score (see NoteDetailPage's quiz block), preserved
+ * verbatim from the old notesSummarySystemPrompt's "quiz" field.
+ */
+export function notesQuizSystemPrompt(language: Language): string {
+  return [
+    BASE,
+    languageLine(language),
+    "Given raw study material (notes, extracted PDF/image text), produce strict JSON only: " +
+      '{"quiz":[{"question":"...","options":["A","B","C","D"],"correct_index":0}]}',
+    "3-5 quiz questions covering the material's distinct ideas, not just one part of it.",
+  ].join("\n");
+}
+
 export function notesChatSystemPrompt(language: Language, title: string, summary: string, keyConcepts: string[]): string {
   return [
     BASE,
