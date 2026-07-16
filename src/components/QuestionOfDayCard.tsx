@@ -60,7 +60,7 @@ export default function QuestionOfDayCard() {
 
   if (!data) {
     return (
-      <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70 shadow-xl backdrop-blur">
+      <div className="card-deep card-deep-glow flex items-center gap-3 rounded-2xl p-6 text-sm text-white/70">
         <LoadingSpinner size={18} label="Loading" />
         Loading question of the day…
       </div>
@@ -71,7 +71,7 @@ export default function QuestionOfDayCard() {
     return (
       <div
         data-testid="qotd-empty"
-        className="rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70 shadow-xl backdrop-blur"
+        className="card-deep card-deep-glow rounded-2xl p-6 text-sm text-white/70"
       >
         No question of the day yet — the past-questions catalog is empty on
         this machine. Once past questions are seeded, one will appear here
@@ -87,7 +87,7 @@ export default function QuestionOfDayCard() {
   return (
     <div
       data-testid="qotd-card"
-      className="rounded-2xl border border-white/10 bg-white/10 p-6 shadow-xl backdrop-blur"
+      className="card-deep card-deep-glow rounded-2xl p-6"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>

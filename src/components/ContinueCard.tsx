@@ -34,7 +34,7 @@ export default function ContinueCard() {
 
   if (!data) {
     return (
-      <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70 shadow-xl backdrop-blur">
+      <div className="card-deep card-deep-glow flex items-center gap-3 rounded-2xl p-6 text-sm text-white/70">
         <LoadingSpinner size={18} label="Loading" />
         Loading…
       </div>
@@ -45,7 +45,7 @@ export default function ContinueCard() {
     return (
       <div
         data-testid="continue-card-empty"
-        className="rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70 shadow-xl backdrop-blur"
+        className="card-deep card-deep-glow rounded-2xl p-6 text-sm text-white/70"
       >
         Nothing yet — start below.
       </div>
@@ -56,7 +56,7 @@ export default function ContinueCard() {
     <Link
       href={data.href}
       data-testid="continue-card"
-      className="block rounded-2xl border border-white/10 bg-white/10 p-6 shadow-xl backdrop-blur transition hover:border-white/30"
+      className="card-deep card-deep-glow block rounded-2xl p-6 transition hover:border-white/30"
     >
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
         {data.type === "subunit" ? "Continue studying" : "Continue reading"}
