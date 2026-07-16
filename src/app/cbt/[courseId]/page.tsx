@@ -90,11 +90,11 @@ export default function CbtPage({
         </header>
 
         {notFound ? (
-          <div className="mt-8 rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70">
+          <div className="card-deep mt-8 rounded-2xl p-6 text-sm text-white/70">
             Course not found.
           </div>
         ) : !course || !questions ? (
-          <div className="mt-8 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70">
+          <div className="card-deep mt-8 flex items-center gap-3 rounded-2xl p-6 text-sm text-white/70">
             <LoadingSpinner size={18} label="Loading" />
             Loading…
           </div>

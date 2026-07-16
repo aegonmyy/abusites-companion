@@ -175,7 +175,7 @@ export default function CbtClient({ course, questions }: Props) {
     return (
       <div
         data-testid="cbt-empty"
-        className="mt-8 rounded-2xl border border-white/10 bg-white/10 p-6 text-sm text-white/70"
+        className="card-deep mt-8 rounded-2xl p-6 text-sm text-white/70"
       >
         No questions available yet.
       </div>
@@ -186,7 +186,7 @@ export default function CbtClient({ course, questions }: Props) {
     return (
       <div
         data-testid="cbt-setup"
-        className="mt-8 grid gap-6 rounded-2xl border border-white/10 bg-white/10 p-6 shadow-xl backdrop-blur"
+        className="card-deep card-deep-glow mt-8 grid gap-6 rounded-2xl p-6"
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -204,7 +204,7 @@ export default function CbtClient({ course, questions }: Props) {
             return (
               <div
                 key={year}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
+                className="card-deep flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3"
               >
                 <div>
                   <p className="text-sm font-semibold text-white">{year}</p>
@@ -244,7 +244,7 @@ export default function CbtClient({ course, questions }: Props) {
           })}
         </div>
 
-        <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div className="card-deep grid gap-3 rounded-2xl p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-semibold text-white">Timer</p>
             <p className="text-xs text-white/60">Default: 1 minute per question</p>
@@ -294,24 +294,24 @@ export default function CbtClient({ course, questions }: Props) {
     return (
       <div
         data-testid="cbt-report"
-        className="mt-8 grid gap-6 rounded-2xl border border-white/10 bg-white/10 p-6 shadow-xl backdrop-blur"
+        className="card-deep card-deep-glow mt-8 grid gap-6 rounded-2xl p-6"
       >
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-white/50">CBT Report</p>
           <h2 className="mt-2 text-2xl font-semibold text-white">{course.code} results</h2>
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="card-deep rounded-2xl p-4">
             <p className="text-xs text-white/60">Score</p>
             <p className="mt-2 text-2xl font-semibold text-white">{report.score}%</p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="card-deep rounded-2xl p-4">
             <p className="text-xs text-white/60">Correct</p>
             <p className="mt-2 text-2xl font-semibold text-white">
               {report.correct} / {report.total}
             </p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="card-deep rounded-2xl p-4">
             <p className="text-xs text-white/60">Answered</p>
             <p className="mt-2 text-2xl font-semibold text-white">
               {report.answered} / {report.total}
@@ -341,7 +341,7 @@ export default function CbtClient({ course, questions }: Props) {
   if (phase === "review") {
     return (
       <div className="mt-8 grid gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 p-6 shadow-xl backdrop-blur">
+        <div className="card-deep card-deep-glow flex flex-wrap items-center justify-between gap-3 rounded-2xl p-6">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-white/50">Review answers</p>
             <h2 className="mt-2 text-2xl font-semibold text-white">
@@ -364,7 +364,7 @@ export default function CbtClient({ course, questions }: Props) {
           return (
             <div
               key={question.id}
-              className="rounded-2xl border border-white/10 bg-white/10 p-6 shadow-xl backdrop-blur"
+              className="card-deep rounded-2xl p-6"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs uppercase tracking-[0.3em] text-white/50">
@@ -440,7 +440,7 @@ export default function CbtClient({ course, questions }: Props) {
         </div>
       ) : null}
 
-      <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/10 p-6 shadow-xl backdrop-blur">
+      <div className="card-deep card-deep-glow grid gap-4 rounded-2xl p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-white/50">
@@ -455,7 +455,7 @@ export default function CbtClient({ course, questions }: Props) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+        <div className="card-deep rounded-2xl p-5">
           <p className="text-sm text-white/60">Year {current.year ?? "N/A"}</p>
           <MathText as="p" className="mt-2 text-base text-white" text={current.question_text ?? ""} />
           <div className="mt-4 grid gap-2">
@@ -520,7 +520,7 @@ export default function CbtClient({ course, questions }: Props) {
 
       {showSubmitConfirm ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 backdrop-blur">
-          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/10 p-6 text-white shadow-2xl backdrop-blur">
+          <div className="card-deep w-full max-w-md rounded-3xl p-6 text-white shadow-2xl">
             <h3 className="text-lg font-semibold">Submit CBT?</h3>
             <p className="mt-2 text-sm text-white/70">
               This will end the session and lock your answers.
