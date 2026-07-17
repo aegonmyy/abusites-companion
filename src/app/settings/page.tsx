@@ -289,7 +289,9 @@ export default function SettingsPage() {
                   data-testid="token-budget-slider"
                 />
                 <span className="text-xs text-white/50">
-                  Shorter replies come back faster on slower hardware.
+                  Shorter replies come back faster on slower hardware. Local
+                  mode only, cloud replies aren&apos;t capped by this since
+                  they don&apos;t run on your device.
                 </span>
               </label>
             </fieldset>

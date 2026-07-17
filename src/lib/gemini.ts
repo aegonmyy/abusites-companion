@@ -31,22 +31,38 @@
  * before the 1-token real answer; a realistic gloss-shaped explanation
  * prompt burned 647 thinking tokens against 193 real content tokens.
  * sseToGeminiTextStream filters `thought:true` parts out of what the user
- * sees; CLOUD_THINKING_BUFFER below inflates every route's token budget so
- * the real answer doesn't get cut off by MAX_TOKENS before it ever starts
- * (this app's local NUM_PREDICT budgets, e.g. gloss:80, are sized for a
- * model with no thinking overhead at all and are nowhere near enough on
- * their own).
+ * sees.
+ *
+ * TOKEN BUDGET, DELIBERATELY NOT ROUTE-CAPPED: ollama.ts's NUM_PREDICT
+ * table (gloss:80, chat:200, etc.) exists to keep output short and fast on
+ * weak local hardware — that reasoning has nothing to do with a cloud call,
+ * which runs on Google's infrastructure, not the student's machine. Given
+ * the thinking overhead above, reusing those small local caps here would
+ * have truncated almost every real reply before it started. Cloud calls
+ * instead always request CLOUD_MAX_OUTPUT_TOKENS, the model's own real
+ * ceiling (`outputTokenLimit: 32768`, confirmed via GET
+ * /v1beta/models/gemma-4-26b-a4b-it with a real key) — the only guardrails
+ * that should apply to a cloud call are the ones the API itself enforces
+ * (this output ceiling, and the account's RPM/TPM rate limit), not an
+ * artificial local-hardware-shaped one. The model still stops naturally at
+ * `finishReason: STOP` once it's actually done (verified: real replies in
+ * testing ended at 90-943 total tokens, nowhere near this ceiling) — a
+ * high ceiling doesn't mean every reply becomes long, it just means a
+ * genuinely long one is never cut off. `numPredictOverride` stays in this
+ * function's signature only to keep the same call shape as
+ * ollamaChatStream (every /api/llm call site passes it); it's intentionally
+ * unused for the token cap here. `routeTag` is still used, just for
+ * temperature (via TEMPERATURE[routeTag]) and the "json" response-mode
+ * switch below, not for sizing output.
  */
-import { NUM_PREDICT, TEMPERATURE, type RouteTag, type ChatMessage } from "./ollama";
+import { TEMPERATURE, type RouteTag, type ChatMessage } from "./ollama";
 
 export const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta";
 export const DEFAULT_CLOUD_MODEL = "gemma-4-26b-a4b-it";
 
-/** Headroom added on top of the route's normal token budget to survive
- * this model's hidden thinking pass — see the file doc comment above for
- * the measurements this is based on. 900 comfortably covers the largest
- * observed real case (647) with margin for run-to-run variance. */
-const CLOUD_THINKING_BUFFER = 900;
+/** The model's real output ceiling (see file doc comment) — not a budget
+ * this app is choosing, just what the API itself allows. */
+const CLOUD_MAX_OUTPUT_TOKENS = 32768;
 
 export type GeminiChatRequest = {
   routeTag: RouteTag;
@@ -111,13 +127,19 @@ export async function geminiChatStream({
   messages,
   apiKey,
   model,
-  numPredictOverride,
+  // numPredictOverride is accepted (see GeminiChatRequest) only to keep the
+  // same call shape as ollamaChatStream — every /api/llm call site passes
+  // it — but deliberately unused here; see CLOUD_MAX_OUTPUT_TOKENS's doc
+  // comment for why.
   temperatureOverride,
   audio,
 }: GeminiChatRequest): Promise<Response> {
   const system = messages.find((m) => m.role === "system")?.content;
   const temperature = routeTag === "json" ? TEMPERATURE.json : temperatureOverride ?? TEMPERATURE[routeTag];
-  const maxOutputTokens = (numPredictOverride ?? NUM_PREDICT[routeTag]) + CLOUD_THINKING_BUFFER;
+  // Deliberately not numPredictOverride ?? NUM_PREDICT[routeTag] — see the
+  // file doc comment on CLOUD_MAX_OUTPUT_TOKENS for why local's per-route
+  // budgets don't apply to a cloud call.
+  const maxOutputTokens = CLOUD_MAX_OUTPUT_TOKENS;
   const modelId = model ?? DEFAULT_CLOUD_MODEL;
 
   const body = {
