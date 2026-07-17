@@ -14,7 +14,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import MathText from "@/components/MathText";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { cbtExplanationSystemPrompt, type Language } from "@/lib/prompts";
+import { cbtQuestionExplanationSystemPrompt, type Language } from "@/lib/prompts";
 
 const labels = ["A", "B", "C", "D"] as const;
 
@@ -61,9 +61,9 @@ export default function CbtClient({ course, questions }: Props) {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [sessionQuestions, setSessionQuestions] = useState<Question[]>([]);
   const [language, setLanguage] = useState<Language>("en");
-  const [aiExplainLoading, setAiExplainLoading] = useState(false);
-  const [aiExplain, setAiExplain] = useState("");
-  const [aiExplainError, setAiExplainError] = useState<string | null>(null);
+  const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
+  const [aiExplainLoadingId, setAiExplainLoadingId] = useState<string | null>(null);
+  const [aiExplainErrorId, setAiExplainErrorId] = useState<string | null>(null);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTriggered = useRef(false);
 
@@ -182,43 +182,43 @@ export default function CbtClient({ course, questions }: Props) {
     return Number.isFinite(parsed) ? parsed : null;
   };
 
-  // On-demand, whole-session "AI explanation" — one call covering every
-  // question in the completed CBT, not a per-question button. Always sends
-  // the full option list for every question regardless of outcome (see
-  // cbtExplanationSystemPrompt's doc comment for why), plus the student's
-  // selected letter (or "not answered") and the correct letter.
-  const explainCbt = async () => {
-    if (aiExplainLoading) return;
-    setAiExplainLoading(true);
-    setAiExplainError(null);
-    setAiExplain("");
+  // On-demand, per-question "AI explanation" — one call for the single
+  // question the student clicks, triggered from the review-answers screen.
+  // Always sends the full option list for this question regardless of
+  // outcome (see cbtQuestionExplanationSystemPrompt's doc comment for why),
+  // plus the student's selected letter (or "not answered") and the correct
+  // letter.
+  const explainQuestion = async (question: Question) => {
+    const key = String(question.id);
+    if (aiExplainLoadingId) return;
+    setAiExplainLoadingId(key);
+    setAiExplainErrorId(null);
+    setAiExplanations((prev) => ({ ...prev, [key]: "" }));
     try {
-      const blocks = sessionQuestions.map((q, i) => {
-        const options = Array.isArray(q.options) ? q.options : [];
-        const optionsText = options
-          .map((opt, idx) => (opt ? `${labels[idx]}. ${opt}` : null))
-          .filter(Boolean)
-          .join("\n");
-        const correctIdx = getAnswerIndex(q.answer);
-        const selectedIdx = answers[String(q.id)];
-        const correctLabel = correctIdx != null ? labels[correctIdx] ?? "Unknown" : "Unknown";
-        const selectedLabel = selectedIdx != null ? labels[selectedIdx] ?? "Unknown" : "not answered";
-        return [
-          `Question ${i + 1}: ${q.question_text ?? ""}`,
-          `Options:\n${optionsText}`,
-          `Student's answer: ${selectedLabel}`,
-          `Correct answer: ${correctLabel}`,
-        ].join("\n");
-      });
+      const options = Array.isArray(question.options) ? question.options : [];
+      const optionsText = options
+        .map((opt, idx) => (opt ? `${labels[idx]}. ${opt}` : null))
+        .filter(Boolean)
+        .join("\n");
+      const correctIdx = getAnswerIndex(question.answer);
+      const selectedIdx = answers[key];
+      const correctLabel = correctIdx != null ? labels[correctIdx] ?? "Unknown" : "Unknown";
+      const selectedLabel = selectedIdx != null ? labels[selectedIdx] ?? "Unknown" : "not answered";
+      const userContent = [
+        `Question: ${question.question_text ?? ""}`,
+        `Options:\n${optionsText}`,
+        `Student's answer: ${selectedLabel}`,
+        `Correct answer: ${correctLabel}`,
+      ].join("\n");
 
       const res = await fetch("/api/llm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           routeTag: "lesson",
-          system: cbtExplanationSystemPrompt(language),
-          numPredictOverride: Math.min(2500, 300 + sessionQuestions.length * 150),
-          messages: [{ role: "user", content: blocks.join("\n\n") }],
+          system: cbtQuestionExplanationSystemPrompt(language),
+          numPredictOverride: 350,
+          messages: [{ role: "user", content: userContent }],
         }),
       });
       if (!res.ok || !res.body) {
@@ -234,14 +234,18 @@ export default function CbtClient({ course, questions }: Props) {
         const chunk = decoder.decode(value, { stream: true });
         if (chunk) {
           assembled += chunk;
-          setAiExplain(assembled);
+          setAiExplanations((prev) => ({ ...prev, [key]: assembled }));
         }
       }
       if (!assembled.trim()) throw new Error("Local model unavailable — is Ollama running?");
     } catch (err) {
-      setAiExplainError(err instanceof Error ? err.message : "Could not generate an explanation.");
+      setAiExplainErrorId(key);
+      setAiExplanations((prev) => ({
+        ...prev,
+        [key]: err instanceof Error ? err.message : "Could not generate an explanation.",
+      }));
     } finally {
-      setAiExplainLoading(false);
+      setAiExplainLoadingId(null);
     }
   };
 
@@ -413,41 +417,7 @@ export default function CbtClient({ course, questions }: Props) {
           >
             Review answers
           </button>
-          {!aiExplain && (
-            <button
-              type="button"
-              onClick={explainCbt}
-              disabled={aiExplainLoading}
-              data-testid="cbt-explain-ai-button"
-              className="rounded-full border border-white/20 px-6 py-2 text-sm font-semibold text-white/70 transition hover:border-white/40 hover:text-white disabled:opacity-60"
-            >
-              {aiExplainLoading ? "Explaining…" : "AI explanation"}
-            </button>
-          )}
         </div>
-
-        {aiExplainLoading && !aiExplain && (
-          <p className="flex items-center gap-2 text-sm text-white/60">
-            <LoadingSpinner size={16} label="Thinking" />
-            Going through every question, this could take a while.
-          </p>
-        )}
-        {aiExplainError && <p className="text-sm text-rose-300">{aiExplainError}</p>}
-        {aiExplain && (
-          <div
-            data-testid="cbt-explanation-ai"
-            className="card-deep rounded-2xl border border-emerald-300/20 bg-emerald-500/5 p-5"
-          >
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300/80">
-              AI explanation
-            </p>
-            <div className="text-sm text-white/85">
-              <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
-                {aiExplain}
-              </ReactMarkdown>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -535,6 +505,42 @@ export default function CbtClient({ course, questions }: Props) {
                     </div>
                   );
                 })}
+              </div>
+
+              <div className="mt-4 flex flex-col gap-2">
+                {!aiExplanations[String(question.id)] && (
+                  <button
+                    type="button"
+                    onClick={() => explainQuestion(question)}
+                    disabled={aiExplainLoadingId === String(question.id)}
+                    data-testid={`cbt-${question.id}-explain-ai-button`}
+                    className="w-fit rounded-full border border-white/20 px-4 py-1.5 text-xs font-semibold text-white/70 transition hover:border-white/40 hover:text-white disabled:opacity-60"
+                  >
+                    {aiExplainLoadingId === String(question.id) ? "Explaining…" : "AI explanation"}
+                  </button>
+                )}
+                {(aiExplanations[String(question.id)] || aiExplainLoadingId === String(question.id)) && (
+                  <div
+                    data-testid={`cbt-${question.id}-explanation-ai`}
+                    className="rounded-xl border border-emerald-300/20 bg-emerald-500/5 p-3 text-sm text-white/85"
+                  >
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300/80">
+                      AI explanation
+                    </p>
+                    {aiExplainLoadingId === String(question.id) && !aiExplanations[String(question.id)] ? (
+                      <p className="flex items-center gap-2 text-xs text-white/50">
+                        <LoadingSpinner size={14} label="Thinking" />
+                        Asking the model…
+                      </p>
+                    ) : aiExplainErrorId === String(question.id) ? (
+                      <p className="text-xs text-rose-300">{aiExplanations[String(question.id)]}</p>
+                    ) : (
+                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                        {aiExplanations[String(question.id)]}
+                      </ReactMarkdown>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           );
