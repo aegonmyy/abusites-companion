@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 /**
- * Lists seeded courses with their past_question counts, so the browser can
- * show which courses actually have content (currently: none — the
- * upstream source project's past_questions table returned zero rows to
- * the read-only key used by the setup-time seed script; see the Phase 1
- * seed report).
+ * Lists seeded courses that actually have past questions, with their
+ * counts. Courses with zero past questions (real: many exam/test variants
+ * in the seeded catalog have none — see prisma/seed-bundle/catalog.json)
+ * are filtered out server-side rather than shown as a dead end the student
+ * has to click into to discover is empty.
  */
 export async function GET() {
   const courses = await prisma.course.findMany({
@@ -15,11 +15,13 @@ export async function GET() {
   });
 
   return NextResponse.json(
-    courses.map((c) => ({
-      id: c.id,
-      code: c.code,
-      title: c.title,
-      pastQuestionCount: c._count.pastQuestions,
-    })),
+    courses
+      .filter((c) => c._count.pastQuestions > 0)
+      .map((c) => ({
+        id: c.id,
+        code: c.code,
+        title: c.title,
+        pastQuestionCount: c._count.pastQuestions,
+      })),
   );
 }
