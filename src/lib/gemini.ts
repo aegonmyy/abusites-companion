@@ -11,18 +11,42 @@
  * /api/llm/route.ts can switch between them with one branch, and the client
  * side (every component that calls /api/llm) needs zero changes either way.
  *
- * MODEL ID: DEFAULT_CLOUD_MODEL below is a placeholder pointing at the
- * current Gemini-API naming convention for a Gemma model
- * ("gemma-3-27b-it"-style) — Google AI Studio's model picker is the source
- * of truth for whatever the actual "Gemma 4" model id is at demo time; this
- * constant (and the Settings "Cloud model" field, which overrides it) must
- * be checked against that picker before relying on it. Do not assume this
- * string is correct without checking.
+ * MODEL ID: confirmed directly against the live API's ListModels response
+ * (2026-07-17) using a real key — two Gemma 4 variants are available,
+ * `gemma-4-26b-a4b-it` (26B total / 4B active, MoE) and `gemma-4-31b-it`
+ * (dense). DEFAULT_CLOUD_MODEL below picks the lighter A4B variant, a
+ * closer match to the free-tier rate limits (15 RPM / 16k TPM) this app
+ * should default to for a student's own free-tier key. The Settings
+ * "Cloud model" field lets a user override this to the 31B variant or any
+ * other model id they have access to.
+ *
+ * THINKING OVERHEAD (verified empirically against the real API, not a
+ * guess): this model streams internal reasoning as ordinary content parts
+ * flagged `"thought": true`, unrequested and unfiltered by default — the
+ * same class of finding as ollamaChatAudioStream's documented behavior for
+ * the local model's audio endpoint (see docs/AUDIO_FINDING.md). There is
+ * no way to disable it: `generationConfig.thinkingConfig.thinkingBudget`
+ * returns `400 Thinking budget is not supported for this model`. Measured
+ * cost: a trivial "Say OK and nothing else" burned 82 thinking tokens
+ * before the 1-token real answer; a realistic gloss-shaped explanation
+ * prompt burned 647 thinking tokens against 193 real content tokens.
+ * sseToGeminiTextStream filters `thought:true` parts out of what the user
+ * sees; CLOUD_THINKING_BUFFER below inflates every route's token budget so
+ * the real answer doesn't get cut off by MAX_TOKENS before it ever starts
+ * (this app's local NUM_PREDICT budgets, e.g. gloss:80, are sized for a
+ * model with no thinking overhead at all and are nowhere near enough on
+ * their own).
  */
 import { NUM_PREDICT, TEMPERATURE, type RouteTag, type ChatMessage } from "./ollama";
 
 export const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta";
-export const DEFAULT_CLOUD_MODEL = "gemma-3-27b-it";
+export const DEFAULT_CLOUD_MODEL = "gemma-4-26b-a4b-it";
+
+/** Headroom added on top of the route's normal token budget to survive
+ * this model's hidden thinking pass — see the file doc comment above for
+ * the measurements this is based on. 900 comfortably covers the largest
+ * observed real case (647) with margin for run-to-run variance. */
+const CLOUD_THINKING_BUFFER = 900;
 
 export type GeminiChatRequest = {
   routeTag: RouteTag;
@@ -93,7 +117,7 @@ export async function geminiChatStream({
 }: GeminiChatRequest): Promise<Response> {
   const system = messages.find((m) => m.role === "system")?.content;
   const temperature = routeTag === "json" ? TEMPERATURE.json : temperatureOverride ?? TEMPERATURE[routeTag];
-  const maxOutputTokens = numPredictOverride ?? NUM_PREDICT[routeTag];
+  const maxOutputTokens = (numPredictOverride ?? NUM_PREDICT[routeTag]) + CLOUD_THINKING_BUFFER;
   const modelId = model ?? DEFAULT_CLOUD_MODEL;
 
   const body = {
@@ -140,8 +164,15 @@ export function sseToGeminiTextStream(body: ReadableStream<Uint8Array>) {
     if (!payload) return;
     try {
       const parsed = JSON.parse(payload);
-      const chunk = parsed?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("");
-      if (typeof chunk === "string" && chunk.length > 0) {
+      const parts: { text?: string; thought?: boolean }[] = parsed?.candidates?.[0]?.content?.parts ?? [];
+      // Drop thought:true parts — the model's internal reasoning trace,
+      // never meant to be shown to the user. See the file doc comment for
+      // why this is unavoidable rather than something a flag turns off.
+      const chunk = parts
+        .filter((p) => !p.thought)
+        .map((p) => p.text ?? "")
+        .join("");
+      if (chunk.length > 0) {
         controller.enqueue(encoder.encode(chunk));
       }
     } catch {

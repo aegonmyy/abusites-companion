@@ -190,13 +190,14 @@ export default function SettingsPage() {
                     <input
                       value={cloudModel}
                       onChange={(e) => setCloudModel(e.target.value)}
-                      placeholder="gemma-3-27b-it"
+                      placeholder="gemma-4-26b-a4b-it"
                       data-testid="cloud-model-input"
                       className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
                     />
                     <span className="text-xs text-white/50">
-                      Leave blank to use the default. Check Google AI Studio&apos;s model
-                      picker for the exact Gemma model id you have access to.
+                      Leave blank to use Gemma 4 (26B A4B), fits the free tier&apos;s
+                      15 RPM / 16k TPM limits. Try gemma-4-31b-it if you need the
+                      larger variant and have quota for it.
                     </span>
                   </div>
 
