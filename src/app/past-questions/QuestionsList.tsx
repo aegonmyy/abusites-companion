@@ -11,6 +11,10 @@
 //     has no accounts or limits, so that branch never rendered anyway.
 
 import { useEffect, useMemo, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import MathText from "@/components/MathText";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { explainQuestionSystemPrompt, type Language } from "@/lib/prompts";
@@ -394,12 +398,14 @@ export default function QuestionsList({ questions, totalCount }: Props) {
                         {aiExplainLoadingId === String(question.id) && !aiExplanations[String(question.id)] ? (
                           <p className="flex items-center gap-2 text-xs text-white/50">
                             <LoadingSpinner size={14} label="Thinking" />
-                            Asking the local model…
+                            Asking the model…
                           </p>
                         ) : aiExplainErrorId === String(question.id) ? (
                           <p className="text-xs text-rose-300">{aiExplanations[String(question.id)]}</p>
                         ) : (
-                          <MathText text={aiExplanations[String(question.id)]} />
+                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                            {aiExplanations[String(question.id)]}
+                          </ReactMarkdown>
                         )}
                       </div>
                     )}

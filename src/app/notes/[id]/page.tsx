@@ -9,6 +9,10 @@
 import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import MathText from "@/components/MathText";
 import MicButton from "@/components/MicButton";
 import SendGlyph from "@/components/SendGlyph";
@@ -64,6 +68,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const router = useRouter();
   const [note, setNote] = useState<Note | null>(null);
   const [language, setLanguage] = useState<Language>("en");
+  const [modelSource, setModelSource] = useState<"local" | "cloud">("local");
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [submitted, setSubmitted] = useState(false);
   const [chat, setChat] = useState<ChatMsg[]>([]);
@@ -83,7 +88,10 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
       .then(setNote);
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((d) => setLanguage((d.language as Language) ?? "en"));
+      .then((d) => {
+        setLanguage((d.language as Language) ?? "en");
+        setModelSource(d.modelSource === "cloud" ? "cloud" : "local");
+      });
   }, [id]);
 
   useEffect(() => {
@@ -358,6 +366,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                 language={language}
                 initialExplanations={note.segmentExplanations}
                 sourceText={note.rawText}
+                modelSource={modelSource}
               />
             ) : null}
 
@@ -454,6 +463,10 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                   >
                     {m.role === "assistant" && !m.content ? (
                       <LoadingSpinner size={18} label="Thinking" />
+                    ) : m.role === "assistant" ? (
+                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                        {m.content}
+                      </ReactMarkdown>
                     ) : (
                       <MathText text={m.content} />
                     )}
@@ -484,7 +497,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                 >
                   <SendGlyph />
                 </button>
-                <MicButton disabled={streaming} onRecorded={sendAudio} />
+                {modelSource === "local" && <MicButton disabled={streaming} onRecorded={sendAudio} />}
               </form>
             </div>
             )}

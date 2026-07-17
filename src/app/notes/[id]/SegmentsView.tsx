@@ -37,6 +37,10 @@ type SegmentsViewProps = {
    * implied by the segment title. Capped below to stay well inside num_ctx
    * (4096) even for a long paste. */
   sourceText: string | null;
+  /** Cloud mode (Google AI Studio's Gemma 4) doesn't support audio input at
+   * all — confirmed via the live API: "Audio input modality is not enabled
+   * for this model". The mic is hidden rather than shown-and-failing. */
+  modelSource: "local" | "cloud";
 };
 
 // ~6000 chars is comfortably under num_ctx (4096 tokens) once the rest of
@@ -53,6 +57,7 @@ export default function SegmentsView({
   language,
   initialExplanations,
   sourceText,
+  modelSource,
 }: SegmentsViewProps) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [explanations, setExplanations] = useState<Record<string, string>>(initialExplanations);
@@ -306,6 +311,10 @@ export default function SegmentsView({
                             >
                               {m.role === "assistant" && !m.content ? (
                                 <LoadingSpinner size={16} label="Thinking" />
+                              ) : m.role === "assistant" ? (
+                                <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                                  {m.content}
+                                </ReactMarkdown>
                               ) : (
                                 <MathText text={m.content} />
                               )}
@@ -338,10 +347,12 @@ export default function SegmentsView({
                         >
                           <SendGlyph />
                         </button>
-                        <MicButton
-                          disabled={chatStreamingId === segment.segment_id}
-                          onRecorded={(audio) => sendChatAudio(segment, audio)}
-                        />
+                        {modelSource === "local" && (
+                          <MicButton
+                            disabled={chatStreamingId === segment.segment_id}
+                            onRecorded={(audio) => sendChatAudio(segment, audio)}
+                          />
+                        )}
                       </form>
                     </div>
                   ) : null}

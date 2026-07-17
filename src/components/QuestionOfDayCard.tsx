@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import LoadingSpinner from "./LoadingSpinner";
 import MathText from "./MathText";
 import { explainQuestionSystemPrompt, type Language } from "@/lib/prompts";
@@ -214,14 +218,16 @@ export default function QuestionOfDayCard() {
           {aiExplainLoading && !aiExplain && (
             <p className="flex items-center gap-2 text-xs text-white/50">
               <LoadingSpinner size={14} label="Thinking" />
-              Asking the local model…
+              Asking the model…
             </p>
           )}
           {aiExplainError && <p className="text-xs text-rose-300">{aiExplainError}</p>}
           {aiExplain && (
             <div data-testid="qotd-explanation-ai" className="rounded-xl border border-emerald-300/20 bg-emerald-500/5 p-3 text-sm text-white/80">
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300/80">AI explanation</p>
-              <MathText text={aiExplain} />
+              <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                {aiExplain}
+              </ReactMarkdown>
             </div>
           )}
         </div>
