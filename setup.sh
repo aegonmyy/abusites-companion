@@ -3,8 +3,13 @@
 #
 # What this does, in order:
 #   1. Checks Node.js and npm are present (>=20).
-#   2. Checks Ollama is installed and reachable; pulls the shipped model
-#      (gemma4:e2b) if it isn't already present locally.
+#   2. Asks which model source to set up (or reads GRINNISH_MODEL_SOURCE) —
+#      Local (Ollama) or Cloud (Google AI Studio). Local checks Ollama is
+#      installed and reachable, pulls the shipped model (gemma4:e2b) if
+#      it isn't already present. Cloud skips both entirely — no local
+#      inference, no multi-GB download — you add your own API key in
+#      Settings after the app starts. See README, "Model source: local
+#      vs. cloud".
 #   3. npm install (this also runs `prisma generate` via postinstall).
 #   4. Creates/updates the local SQLite schema (prisma migrate deploy), then
 #      seeds the course/past-questions catalog from the static bundle
@@ -15,8 +20,9 @@
 #   5. Production build (npm run build).
 #
 # After this finishes: `npm start`, then open http://localhost:3000.
-# Ollama must be running (`ollama serve`) whenever the app is running —
-# this script does not manage that as a background service; see README.
+# In local mode, Ollama must be running (`ollama serve`) whenever the app
+# is running — this script does not manage that as a background service;
+# see README.
 
 set -euo pipefail
 
@@ -40,25 +46,43 @@ info "Node $(node -v) OK."
 
 command -v npm >/dev/null 2>&1 || fail "npm not found alongside Node — reinstall Node.js."
 
-info "Checking Ollama…"
-if ! command -v ollama >/dev/null 2>&1; then
-  fail "Ollama not found. Install it from https://ollama.com/download, then re-run this script."
+MODEL_SOURCE="${GRINNISH_MODEL_SOURCE:-}"
+if [ "$MODEL_SOURCE" != "local" ] && [ "$MODEL_SOURCE" != "cloud" ]; then
+  echo
+  echo "Which model source do you want to set up?"
+  echo "  1) Local (Ollama)  — installs/checks Ollama + downloads the ~7GB model, fully offline after that"
+  echo "  2) Cloud (Google AI Studio) — skips Ollama entirely, needs your own API key + some internet"
+  read -r -p "Enter 1 or 2 [1]: " choice
+  case "$choice" in
+    2) MODEL_SOURCE="cloud" ;;
+    *) MODEL_SOURCE="local" ;;
+  esac
 fi
+info "Model source: $MODEL_SOURCE"
 
-if ! curl -s -o /dev/null --max-time 3 http://localhost:11434/api/tags; then
-  warn "Ollama is installed but doesn't seem to be running."
-  warn "Start it in another terminal with: ollama serve"
-  warn "Then re-run this script."
-  exit 1
-fi
-info "Ollama is running."
+if [ "$MODEL_SOURCE" = "local" ]; then
+  info "Checking Ollama…"
+  if ! command -v ollama >/dev/null 2>&1; then
+    fail "Ollama not found. Install it from https://ollama.com/download, then re-run this script."
+  fi
 
-info "Checking for local model ($MODEL)…"
-if ollama list 2>/dev/null | awk '{print $1}' | grep -qx "$MODEL"; then
-  info "$MODEL already present."
+  if ! curl -s -o /dev/null --max-time 3 http://localhost:11434/api/tags; then
+    warn "Ollama is installed but doesn't seem to be running."
+    warn "Start it in another terminal with: ollama serve"
+    warn "Then re-run this script."
+    exit 1
+  fi
+  info "Ollama is running."
+
+  info "Checking for local model ($MODEL)…"
+  if ollama list 2>/dev/null | awk '{print $1}' | grep -qx "$MODEL"; then
+    info "$MODEL already present."
+  else
+    warn "$MODEL not found locally — pulling now (one-time, needs internet, ~7GB)."
+    ollama pull "$MODEL"
+  fi
 else
-  warn "$MODEL not found locally — pulling now (one-time, needs internet, ~7GB)."
-  ollama pull "$MODEL"
+  info "Cloud mode selected — skipping Ollama check and model download."
 fi
 
 info "Installing npm dependencies (this also runs prisma generate)…"
@@ -76,7 +100,14 @@ npm run build
 
 info "Setup complete."
 echo
-echo "  1. Make sure Ollama is running:  ollama serve"
-echo "  2. Start the app:                npm start"
-echo "  3. Open:                         http://localhost:3000"
+if [ "$MODEL_SOURCE" = "cloud" ]; then
+  echo "  1. Start the app:  npm start"
+  echo "  2. Open:            http://localhost:3000"
+  echo "  3. In Settings, choose Cloud (Google AI Studio) and paste your"
+  echo "     API key (get one at https://aistudio.google.com/apikey)."
+else
+  echo "  1. Make sure Ollama is running:  ollama serve"
+  echo "  2. Start the app:                npm start"
+  echo "  3. Open:                         http://localhost:3000"
+fi
 echo

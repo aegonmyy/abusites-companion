@@ -32,28 +32,44 @@ if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
   Fail "npm not found alongside Node -- reinstall Node.js."
 }
 
-Info "Checking Ollama..."
-if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) {
-  Fail "Ollama not found. Install it from https://ollama.com/download, then re-run this script."
+# Set $env:GRINNISH_MODEL_SOURCE to "local" or "cloud" to skip the prompt.
+$ModelSource = $env:GRINNISH_MODEL_SOURCE
+if ($ModelSource -ne "local" -and $ModelSource -ne "cloud") {
+  Write-Host ""
+  Write-Host "Which model source do you want to set up?"
+  Write-Host "  1) Local (Ollama)  - installs/checks Ollama + downloads the ~7GB model, fully offline after that"
+  Write-Host "  2) Cloud (Google AI Studio) - skips Ollama entirely, needs your own API key + some internet"
+  $choice = Read-Host "Enter 1 or 2 [1]"
+  if ($choice -eq "2") { $ModelSource = "cloud" } else { $ModelSource = "local" }
 }
+Info "Model source: $ModelSource"
 
-try {
-  Invoke-WebRequest -Uri "http://localhost:11434/api/tags" -TimeoutSec 3 -UseBasicParsing | Out-Null
-  Info "Ollama is running."
-} catch {
-  Warn "Ollama is installed but doesn't seem to be running."
-  Warn "Start it (e.g. from the Ollama app, or 'ollama serve' in another window)."
-  Warn "Then re-run this script."
-  exit 1
-}
+if ($ModelSource -eq "local") {
+  Info "Checking Ollama..."
+  if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) {
+    Fail "Ollama not found. Install it from https://ollama.com/download, then re-run this script."
+  }
 
-Info "Checking for local model ($Model)..."
-$modelList = ollama list 2>$null
-if ($modelList -match [regex]::Escape($Model)) {
-  Info "$Model already present."
+  try {
+    Invoke-WebRequest -Uri "http://localhost:11434/api/tags" -TimeoutSec 3 -UseBasicParsing | Out-Null
+    Info "Ollama is running."
+  } catch {
+    Warn "Ollama is installed but doesn't seem to be running."
+    Warn "Start it (e.g. from the Ollama app, or 'ollama serve' in another window)."
+    Warn "Then re-run this script."
+    exit 1
+  }
+
+  Info "Checking for local model ($Model)..."
+  $modelList = ollama list 2>$null
+  if ($modelList -match [regex]::Escape($Model)) {
+    Info "$Model already present."
+  } else {
+    Warn "$Model not found locally -- pulling now (one-time, needs internet, ~7GB)."
+    ollama pull $Model
+  }
 } else {
-  Warn "$Model not found locally -- pulling now (one-time, needs internet, ~7GB)."
-  ollama pull $Model
+  Info "Cloud mode selected -- skipping Ollama check and model download."
 }
 
 Info "Installing npm dependencies (this also runs prisma generate)..."
@@ -71,7 +87,14 @@ npm run build
 
 Info "Setup complete."
 Write-Host ""
-Write-Host "  1. Make sure Ollama is running (the Ollama app, or 'ollama serve')"
-Write-Host "  2. Start the app:  npm start"
-Write-Host "  3. Open:           http://localhost:3000"
+if ($ModelSource -eq "cloud") {
+  Write-Host "  1. Start the app:  npm start"
+  Write-Host "  2. Open:           http://localhost:3000"
+  Write-Host "  3. In Settings, choose Cloud (Google AI Studio) and paste your"
+  Write-Host "     API key (get one at https://aistudio.google.com/apikey)."
+} else {
+  Write-Host "  1. Make sure Ollama is running (the Ollama app, or 'ollama serve')"
+  Write-Host "  2. Start the app:  npm start"
+  Write-Host "  3. Open:           http://localhost:3000"
+}
 Write-Host ""

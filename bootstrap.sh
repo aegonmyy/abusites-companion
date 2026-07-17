@@ -17,15 +17,25 @@
 #      binary from nodejs.org, not a package manager, so this works
 #      identically across every Linux distro and macOS without guessing
 #      which package manager (or its exact package name) is present.
-#   4. Installs Ollama if missing (official install.sh), starts it in the
-#      background if it isn't running, and pulls gemma4:e2b if needed
-#      (~7GB, one-time, needs internet).
+#   4. Asks which model source to set up (or reads GRINNISH_MODEL_SOURCE,
+#      see below) — Local (Ollama) or Cloud (Google AI Studio). Local
+#      installs Ollama if missing, starts it in the background if it isn't
+#      running, and pulls gemma4:e2b if needed (~7GB, one-time, needs
+#      internet). Cloud skips all of that entirely — no multi-GB download,
+#      no local inference — since a low-RAM machine may not be able to run
+#      a local model at all; the app still runs, you add your own API key
+#      in Settings after it starts.
 #   5. Runs the same npm install / prisma migrate / seed / build steps as
 #      setup.sh.
 #   6. Starts the app in the background and opens it in the browser.
 #
 # Safe to re-run: every step checks before acting, so running this again
 # on a machine that already has everything just starts the app.
+#
+# Non-interactive: set GRINNISH_MODEL_SOURCE=local or =cloud to skip the
+# prompt (needed since a piped `curl | bash` has no free stdin for an
+# interactive read unless a real terminal is attached), e.g.:
+#   curl -fsSL <url>/bootstrap.sh | GRINNISH_MODEL_SOURCE=cloud bash
 
 set -euo pipefail
 
@@ -42,6 +52,25 @@ fail()  { echo -e "${RED}==>${NC} $1"; exit 1; }
 
 OS_RAW="$(uname -s)"
 ARCH_RAW="$(uname -m)"
+
+# --------------------------------------------------------- model source ----
+MODEL_SOURCE="${GRINNISH_MODEL_SOURCE:-}"
+if [ "$MODEL_SOURCE" != "local" ] && [ "$MODEL_SOURCE" != "cloud" ]; then
+  if [ -r /dev/tty ]; then
+    echo
+    echo "Which model source do you want to set up?"
+    echo "  1) Local (Ollama)  — installs Ollama + downloads the ~7GB model, fully offline after that"
+    echo "  2) Cloud (Google AI Studio) — skips Ollama entirely, needs your own API key + some internet"
+    read -r -p "Enter 1 or 2 [1]: " choice < /dev/tty || choice=""
+    case "$choice" in
+      2) MODEL_SOURCE="cloud" ;;
+      *) MODEL_SOURCE="local" ;;
+    esac
+  else
+    MODEL_SOURCE="local"
+  fi
+fi
+info "Model source: $MODEL_SOURCE"
 
 # ---------------------------------------------------------------- git ----
 if ! command -v git >/dev/null 2>&1; then
@@ -113,31 +142,35 @@ else
 fi
 
 # ------------------------------------------------------------- Ollama ----
-if ! command -v ollama >/dev/null 2>&1; then
-  info "Installing Ollama…"
-  curl -fsSL https://ollama.com/install.sh | sh
-fi
-command -v ollama >/dev/null 2>&1 || fail "Ollama install did not complete. Install manually from https://ollama.com/download, then re-run."
+if [ "$MODEL_SOURCE" = "local" ]; then
+  if ! command -v ollama >/dev/null 2>&1; then
+    info "Installing Ollama…"
+    curl -fsSL https://ollama.com/install.sh | sh
+  fi
+  command -v ollama >/dev/null 2>&1 || fail "Ollama install did not complete. Install manually from https://ollama.com/download, then re-run."
 
-if ! curl -s -o /dev/null --max-time 3 http://localhost:11434/api/tags; then
-  info "Starting Ollama in the background…"
-  nohup ollama serve >/tmp/grinnish-ollama.log 2>&1 &
-  disown || true
-  for _ in $(seq 1 20); do
-    curl -s -o /dev/null --max-time 1 http://localhost:11434/api/tags && break
-    sleep 1
-  done
-fi
-curl -s -o /dev/null --max-time 3 http://localhost:11434/api/tags \
-  || fail "Ollama still isn't responding on :11434. Start it manually with 'ollama serve' and re-run."
-info "Ollama is running."
+  if ! curl -s -o /dev/null --max-time 3 http://localhost:11434/api/tags; then
+    info "Starting Ollama in the background…"
+    nohup ollama serve >/tmp/grinnish-ollama.log 2>&1 &
+    disown || true
+    for _ in $(seq 1 20); do
+      curl -s -o /dev/null --max-time 1 http://localhost:11434/api/tags && break
+      sleep 1
+    done
+  fi
+  curl -s -o /dev/null --max-time 3 http://localhost:11434/api/tags \
+    || fail "Ollama still isn't responding on :11434. Start it manually with 'ollama serve' and re-run."
+  info "Ollama is running."
 
-info "Checking for local model ($MODEL)…"
-if ollama list 2>/dev/null | awk '{print $1}' | grep -qx "$MODEL"; then
-  info "$MODEL already present."
+  info "Checking for local model ($MODEL)…"
+  if ollama list 2>/dev/null | awk '{print $1}' | grep -qx "$MODEL"; then
+    info "$MODEL already present."
+  else
+    warn "$MODEL not found locally — pulling now (one-time, needs internet, ~7GB)…"
+    ollama pull "$MODEL"
+  fi
 else
-  warn "$MODEL not found locally — pulling now (one-time, needs internet, ~7GB)…"
-  ollama pull "$MODEL"
+  info "Cloud mode selected — skipping Ollama install and model download."
 fi
 
 # --------------------------------------------------------------- app -----
@@ -173,6 +206,14 @@ else
 fi
 echo
 echo "  App:      http://localhost:3000"
-echo "  Logs:     /tmp/grinnish-app.log  and  /tmp/grinnish-ollama.log"
 echo "  Repo:     $INSTALL_DIR"
+if [ "$MODEL_SOURCE" = "cloud" ]; then
+  echo "  Logs:     /tmp/grinnish-app.log"
+  echo
+  echo "  Cloud mode: open Settings in the app, choose Cloud (Google AI"
+  echo "  Studio), and paste your API key (get one at"
+  echo "  https://aistudio.google.com/apikey) before using it."
+else
+  echo "  Logs:     /tmp/grinnish-app.log  and  /tmp/grinnish-ollama.log"
+fi
 echo

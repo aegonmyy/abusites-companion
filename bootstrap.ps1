@@ -45,6 +45,19 @@ function Sync-Path {
 
 $HasWinget = Test-CommandExists "winget"
 
+# --------------------------------------------------------- model source ----
+# Set $env:GRINNISH_MODEL_SOURCE to "local" or "cloud" to skip the prompt.
+$ModelSource = $env:GRINNISH_MODEL_SOURCE
+if ($ModelSource -ne "local" -and $ModelSource -ne "cloud") {
+  Write-Host ""
+  Write-Host "Which model source do you want to set up?"
+  Write-Host "  1) Local (Ollama)  - installs Ollama + downloads the ~7GB model, fully offline after that"
+  Write-Host "  2) Cloud (Google AI Studio) - skips Ollama entirely, needs your own API key + some internet"
+  $choice = Read-Host "Enter 1 or 2 [1]"
+  if ($choice -eq "2") { $ModelSource = "cloud" } else { $ModelSource = "local" }
+}
+Info "Model source: $ModelSource"
+
 # ----------------------------------------------------------------- git ----
 if (-not (Test-CommandExists "git")) {
   if ($HasWinget) {
@@ -91,49 +104,53 @@ if ($needNode) {
 Info "Node $(node -v) OK."
 
 # -------------------------------------------------------------- Ollama ----
-if (-not (Test-CommandExists "ollama")) {
-  if ($HasWinget) {
-    Info "Installing Ollama via winget..."
-    winget install --id Ollama.Ollama -e --silent --accept-source-agreements --accept-package-agreements
-    Sync-Path
+if ($ModelSource -eq "local") {
+  if (-not (Test-CommandExists "ollama")) {
+    if ($HasWinget) {
+      Info "Installing Ollama via winget..."
+      winget install --id Ollama.Ollama -e --silent --accept-source-agreements --accept-package-agreements
+      Sync-Path
+    } else {
+      Fail "Ollama is missing and winget isn't available. Install from https://ollama.com/download, then re-run this script."
+    }
+  }
+  if (-not (Test-CommandExists "ollama")) {
+    Fail "Ollama install did not complete. Open a new PowerShell window and re-run this script."
+  }
+
+  $ollamaUp = $false
+  try {
+    Invoke-WebRequest -Uri "http://localhost:11434/api/tags" -TimeoutSec 3 -UseBasicParsing | Out-Null
+    $ollamaUp = $true
+  } catch { $ollamaUp = $false }
+
+  if (-not $ollamaUp) {
+    Info "Starting Ollama in the background..."
+    Start-Process -FilePath "ollama" -ArgumentList "serve" -WindowStyle Hidden
+    for ($i = 0; $i -lt 20; $i++) {
+      Start-Sleep -Seconds 1
+      try {
+        Invoke-WebRequest -Uri "http://localhost:11434/api/tags" -TimeoutSec 1 -UseBasicParsing | Out-Null
+        $ollamaUp = $true
+        break
+      } catch { }
+    }
+  }
+  if (-not $ollamaUp) {
+    Fail "Ollama still isn't responding on :11434. Start it manually (the Ollama app, or 'ollama serve') and re-run."
+  }
+  Info "Ollama is running."
+
+  Info "Checking for local model ($Model)..."
+  $modelList = ollama list 2>$null
+  if ($modelList -match [regex]::Escape($Model)) {
+    Info "$Model already present."
   } else {
-    Fail "Ollama is missing and winget isn't available. Install from https://ollama.com/download, then re-run this script."
+    Warn "$Model not found locally - pulling now (one-time, needs internet, ~7GB)..."
+    ollama pull $Model
   }
-}
-if (-not (Test-CommandExists "ollama")) {
-  Fail "Ollama install did not complete. Open a new PowerShell window and re-run this script."
-}
-
-$ollamaUp = $false
-try {
-  Invoke-WebRequest -Uri "http://localhost:11434/api/tags" -TimeoutSec 3 -UseBasicParsing | Out-Null
-  $ollamaUp = $true
-} catch { $ollamaUp = $false }
-
-if (-not $ollamaUp) {
-  Info "Starting Ollama in the background..."
-  Start-Process -FilePath "ollama" -ArgumentList "serve" -WindowStyle Hidden
-  for ($i = 0; $i -lt 20; $i++) {
-    Start-Sleep -Seconds 1
-    try {
-      Invoke-WebRequest -Uri "http://localhost:11434/api/tags" -TimeoutSec 1 -UseBasicParsing | Out-Null
-      $ollamaUp = $true
-      break
-    } catch { }
-  }
-}
-if (-not $ollamaUp) {
-  Fail "Ollama still isn't responding on :11434. Start it manually (the Ollama app, or 'ollama serve') and re-run."
-}
-Info "Ollama is running."
-
-Info "Checking for local model ($Model)..."
-$modelList = ollama list 2>$null
-if ($modelList -match [regex]::Escape($Model)) {
-  Info "$Model already present."
 } else {
-  Warn "$Model not found locally - pulling now (one-time, needs internet, ~7GB)..."
-  ollama pull $Model
+  Info "Cloud mode selected - skipping Ollama install and model download."
 }
 
 # ---------------------------------------------------------------- app -----
@@ -171,4 +188,10 @@ Start-Process "http://localhost:3000"
 Write-Host ""
 Write-Host "  App:   http://localhost:3000"
 Write-Host "  Repo:  $InstallDir"
+if ($ModelSource -eq "cloud") {
+  Write-Host ""
+  Write-Host "  Cloud mode: open Settings in the app, choose Cloud (Google AI"
+  Write-Host "  Studio), and paste your API key (get one at"
+  Write-Host "  https://aistudio.google.com/apikey) before using it."
+}
 Write-Host ""
