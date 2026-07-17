@@ -32,6 +32,7 @@ const KIND_HREF: Record<string, (refId: string) => string> = {
 export default function BookmarksPage() {
   const [bookmarks, setBookmarks] = useState<Bookmark[] | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/bookmarks")
@@ -41,9 +42,16 @@ export default function BookmarksPage() {
 
   async function remove(id: string) {
     setRemovingId(id);
-    setBookmarks((prev) => prev?.filter((b) => b.id !== id) ?? prev);
-    await fetch(`/api/bookmarks/${id}`, { method: "DELETE" }).catch(() => {});
-    setRemovingId(null);
+    setRemoveError(null);
+    try {
+      const res = await fetch(`/api/bookmarks/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Could not remove this bookmark.");
+      setBookmarks((prev) => prev?.filter((b) => b.id !== id) ?? prev);
+    } catch (err) {
+      setRemoveError(err instanceof Error ? err.message : "Could not remove this bookmark.");
+    } finally {
+      setRemovingId(null);
+    }
   }
 
   return (
@@ -60,6 +68,12 @@ export default function BookmarksPage() {
             Back to dashboard
           </Link>
         </header>
+
+        {removeError && (
+          <p className="mt-4 text-xs font-semibold text-rose-300" data-testid="bookmarks-remove-error">
+            {removeError}
+          </p>
+        )}
 
         <div className="mt-8">
           {!bookmarks ? (

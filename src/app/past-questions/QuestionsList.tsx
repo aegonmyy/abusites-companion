@@ -136,7 +136,15 @@ export default function QuestionsList({ questions, totalCount }: Props) {
         next.delete(key);
         return next;
       });
-      if (rowId) await fetch(`/api/bookmarks/${rowId}`, { method: "DELETE" }).catch(() => {});
+      if (rowId) {
+        try {
+          const res = await fetch(`/api/bookmarks/${rowId}`, { method: "DELETE" });
+          if (!res.ok) throw new Error();
+        } catch {
+          // revert — the delete didn't actually happen server-side
+          setBookmarkedIds((prev) => new Set(prev).add(key));
+        }
+      }
       return;
     }
     setBookmarkedIds((prev) => new Set(prev).add(key));
@@ -150,6 +158,7 @@ export default function QuestionsList({ questions, totalCount }: Props) {
           label: (question.question_text ?? "Past question").slice(0, 80),
         }),
       });
+      if (!res.ok) throw new Error();
       const row = await res.json();
       if (row?.id) setBookmarkRowIds((prev) => ({ ...prev, [key]: row.id }));
     } catch {

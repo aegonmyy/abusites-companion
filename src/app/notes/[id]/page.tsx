@@ -70,6 +70,9 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+  const [bookmarkError, setBookmarkError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [quizGenerating, setQuizGenerating] = useState(false);
   const [quizError, setQuizError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -98,18 +101,32 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
 
   async function bookmark() {
     if (!note) return;
-    await fetch("/api/bookmarks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind: "note", refId: note.id, label: note.title }),
-    });
-    setBookmarked(true);
+    setBookmarkError(null);
+    try {
+      const res = await fetch("/api/bookmarks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "note", refId: note.id, label: note.title }),
+      });
+      if (!res.ok) throw new Error("Could not bookmark this note.");
+      setBookmarked(true);
+    } catch (err) {
+      setBookmarkError(err instanceof Error ? err.message : "Could not bookmark this note.");
+    }
   }
 
   async function remove() {
-    if (!note) return;
-    await fetch(`/api/notes/${note.id}`, { method: "DELETE" });
-    router.push("/notes");
+    if (!note || deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`/api/notes/${note.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Could not delete this note.");
+      router.push("/notes");
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Could not delete this note.");
+      setDeleting(false);
+    }
   }
 
   // The deferred "Generate quiz" action — quiz generation no longer happens
@@ -302,15 +319,22 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                 <button
                   type="button"
                   onClick={remove}
+                  disabled={deleting}
                   data-testid="delete-note-button"
                   aria-label="Delete"
                   title="Delete"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-rose-300/40 text-rose-200 transition hover:border-rose-300/70 hover:bg-rose-500/10"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-rose-300/40 text-rose-200 transition hover:border-rose-300/70 hover:bg-rose-500/10 disabled:opacity-60"
                 >
-                  <TrashIcon />
+                  {deleting ? <LoadingSpinner size={16} className="text-rose-200" label="Deleting" /> : <TrashIcon />}
                 </button>
               </div>
             </div>
+
+            {(bookmarkError || deleteError) && (
+              <p className="text-xs font-semibold text-rose-300" data-testid="note-actions-error">
+                {bookmarkError || deleteError}
+              </p>
+            )}
 
             {note.keyConcepts.length > 0 && (
               <div className="flex flex-wrap gap-2" data-testid="note-key-concepts">

@@ -54,7 +54,8 @@ export default function SettingsPage() {
   const [cloudModel, setCloudModel] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -80,19 +81,34 @@ export default function SettingsPage() {
       cloudModel: string | null;
     }>,
   ) {
-    setSaving(true);
+    setSaveStatus("saving");
+    setSaveError(null);
     if (next.language !== undefined) setLanguage(next.language);
     if (next.temperature !== undefined) setTemperature(next.temperature);
     if (next.tokenBudget !== undefined) setTokenBudget(next.tokenBudget);
     if (next.modelSource !== undefined) setModelSource(next.modelSource);
     try {
-      await fetch("/api/settings", {
+      const res = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(next),
       });
-    } finally {
-      setSaving(false);
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error ?? "Could not save settings.");
+      }
+      setSaveStatus("saved");
+      // Transient success indicator — clears itself so it doesn't linger
+      // as stale "saved" text next to a field the user has since changed
+      // again. Errors are NOT cleared this way (see catch below): a failed
+      // save should stay visible until the next attempt, not silently
+      // disappear after 2s.
+      window.setTimeout(() => {
+        setSaveStatus((s) => (s === "saved" ? "idle" : s));
+      }, 2000);
+    } catch (err) {
+      setSaveStatus("error");
+      setSaveError(err instanceof Error ? err.message : "Could not save settings.");
     }
   }
 
@@ -201,14 +217,27 @@ export default function SettingsPage() {
                     </span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => save({ cloudApiKey: cloudApiKey || null, cloudModel: cloudModel || null })}
-                    data-testid="save-cloud-settings-button"
-                    className="w-fit rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-900 disabled:opacity-60"
-                  >
-                    Save cloud settings
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => save({ cloudApiKey: cloudApiKey || null, cloudModel: cloudModel || null })}
+                      disabled={saveStatus === "saving"}
+                      data-testid="save-cloud-settings-button"
+                      className="w-fit rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-900 disabled:opacity-60"
+                    >
+                      {saveStatus === "saving" ? "Saving…" : "Save cloud settings"}
+                    </button>
+                    {saveStatus === "saved" && (
+                      <span data-testid="save-cloud-settings-success" className="text-xs font-semibold text-emerald-300">
+                        Saved
+                      </span>
+                    )}
+                    {saveStatus === "error" && (
+                      <span data-testid="save-cloud-settings-error" className="text-xs font-semibold text-rose-300">
+                        {saveError}
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
             </fieldset>
@@ -296,7 +325,9 @@ export default function SettingsPage() {
               </label>
             </fieldset>
 
-            {saving && <p className="text-xs text-white/50">Saving…</p>}
+            {saveStatus === "saving" && <p className="text-xs text-white/50">Saving…</p>}
+            {saveStatus === "saved" && <p className="text-xs font-semibold text-emerald-300">Saved</p>}
+            {saveStatus === "error" && <p className="text-xs font-semibold text-rose-300">{saveError}</p>}
           </div>
         )}
       </div>
