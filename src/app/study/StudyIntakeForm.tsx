@@ -34,31 +34,10 @@ export default function StudyIntakeForm() {
   const [saved, setSaved] = useState(false);
   const [syllabus, setSyllabus] = useState<string | null>(null);
   const [syllabusId, setSyllabusId] = useState("");
-  const [loadingMessage, setLoadingMessage] = useState("Booting study engine...");
   const [hydrating, setHydrating] = useState(true);
   const [syllabi, setSyllabi] = useState<SyllabusEntry[]>([]);
   const [selectedSyllabusId, setSelectedSyllabusId] = useState("");
   const [syllabusMenuOpen, setSyllabusMenuOpen] = useState(false);
-
-  const loadingMessages = [
-    "Booting study engine...",
-    "Reading your topic...",
-    "Brewing a custom syllabus...",
-    "Aligning knowledge satellites...",
-    "Tuning the concept radar...",
-  ];
-
-  useEffect(() => {
-    if (!submitting) return;
-    let index = 0;
-    setLoadingMessage(loadingMessages[index]);
-    const interval = window.setInterval(() => {
-      index = (index + 1) % loadingMessages.length;
-      setLoadingMessage(loadingMessages[index]);
-    }, 1800);
-    return () => window.clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submitting]);
 
   useEffect(() => {
     let isMounted = true;
@@ -225,7 +204,10 @@ export default function StudyIntakeForm() {
   return (
     <>
       {submitting ? (
-        <FullPageLoader message="Generating syllabus" subMessage={loadingMessage} />
+        <FullPageLoader
+          message={`Generating full syllabus for "${topic.trim()}"`}
+          subMessage="This could take a while."
+        />
       ) : null}
 
       <div className="mb-4 flex justify-end">
