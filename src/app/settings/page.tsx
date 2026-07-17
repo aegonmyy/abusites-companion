@@ -113,7 +113,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen px-6 py-12" data-testid="settings-page">
+    <div className="min-h-dvh px-6 py-12" data-testid="settings-page">
       <div className="mx-auto w-full max-w-3xl">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>

@@ -260,7 +260,7 @@ export default function CourseList({ courses }: Props) {
             onClick={() => setModalOpen(false)}
             aria-hidden="true"
           />
-          <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center px-3 py-6 sm:px-6">
+          <div className="relative mx-auto flex min-h-dvh w-full max-w-7xl items-center px-3 py-6 sm:px-6">
             <div className="relative w-full overflow-hidden rounded-[32px] border border-white/10 bg-[#08111d] shadow-[0_24px_120px_rgba(8,145,178,0.22)]">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.14),transparent_40%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.12),transparent_35%)]" />
               <div className="relative max-h-[90vh] overflow-y-auto px-5 py-5 sm:px-8 sm:py-7">

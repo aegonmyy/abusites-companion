@@ -274,7 +274,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   }
 
   return (
-    <div className="min-h-screen px-6 py-12">
+    <div className="min-h-dvh px-6 py-12">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-5" data-testid="note-detail-page">
         {!note ? (
           <p className="flex items-center gap-3 text-sm text-white/70">

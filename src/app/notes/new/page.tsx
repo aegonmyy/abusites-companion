@@ -225,7 +225,7 @@ export default function NewNotePage() {
   const busy = status === "extracting" || status === "generating";
 
   return (
-    <div className="min-h-screen px-6 py-12">
+    <div className="min-h-dvh px-6 py-12">
       {busy ? (
         <FullPageLoader
           message={status === "extracting" ? "Reading PDF…" : "Finding the segments…"}

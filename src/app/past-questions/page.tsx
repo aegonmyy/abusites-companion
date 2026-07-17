@@ -19,7 +19,7 @@ export default function PastQuestionsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen px-6 py-12" data-testid="past-questions-page">
+    <div className="min-h-dvh px-6 py-12" data-testid="past-questions-page">
       <div className="mx-auto w-full max-w-4xl">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>

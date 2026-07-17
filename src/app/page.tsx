@@ -79,7 +79,7 @@ function pickRandomTopics(pool: string[], count: number): string[] {
 export default function DashboardPage() {
   const suggestedTopics = pickRandomTopics(SUGGESTED_TOPICS_POOL, 3);
   return (
-    <div className="min-h-screen px-4 py-10 sm:px-6 sm:py-12" data-testid="dashboard">
+    <div className="min-h-dvh px-4 py-10 sm:px-6 sm:py-12" data-testid="dashboard">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>

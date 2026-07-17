@@ -59,9 +59,16 @@ body {
   /* Clearance for the floating bottom tab bar (BottomTabBar.tsx) so page
      content — chat inputs, last list items, etc. — never sits behind it.
      Bar is ~64px tall + 16px bottom margin; padding covers that plus
-     breathing room. */
+     breathing room. Widened from 6.5rem after a real report of Settings'
+     Response tuning card sitting behind the bar — root cause was every
+     page wrapper using `min-h-screen` (static 100vh), which mobile
+     browsers routinely get wrong once their address bar collapses/expands
+     mid-scroll (fixed in the page components themselves via `min-h-dvh`,
+     the dynamic-viewport unit built for this); this extra margin is a
+     belt-and-suspenders safety net on top of that real fix, not a
+     substitute for it. */
   .app-shell-content {
-    padding-bottom: 6.5rem;
+    padding-bottom: 8rem;
   }
 }
 

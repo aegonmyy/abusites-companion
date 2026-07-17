@@ -38,7 +38,7 @@ export default function SyllabusPage({
   }, [id]);
 
   return (
-    <div className="min-h-screen px-6 py-12">
+    <div className="min-h-dvh px-6 py-12">
       <div className="mx-auto w-full max-w-5xl">
         <div className="mb-4">
           <Link
