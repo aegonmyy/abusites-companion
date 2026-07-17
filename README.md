@@ -65,14 +65,60 @@ on the same machine.
   `keep_alive:30m` (keeps the model resident in RAM — reloading costs 30s+
   on the target hardware), and a per-route `num_predict` cap (see
   `src/lib/ollama.ts`) so a slow CPU produces short, dense output by design.
-- **Model**: `gemma4:e2b` only, fixed. The larger `e4b` variant has a
-  reproducible OOM-kill history on 15GB RAM in testing and is intentionally
-  unreachable from the UI — see `src/lib/ollama.ts` and
+- **Model, local mode**: `gemma4:e2b` only, fixed. The larger `e4b` variant
+  has a reproducible OOM-kill history on 15GB RAM in testing and is
+  intentionally unreachable from the UI — see `src/lib/ollama.ts` and
   `src/app/settings/page.tsx`.
+- **Model, cloud mode**: a Gemma model served through Google AI Studio's
+  Generative Language API (`src/lib/gemini.ts`), used when Settings ->
+  Model source is set to Cloud. Built to the same external contract as the
+  local client (same route budgets, same streaming shape), so `/api/llm`
+  switches between them with one branch and no other code in the app knows
+  or cares which one is active. See "Model source: local vs. cloud" below.
 - **Prompts** (`src/lib/prompts.ts`) are kept short and dense on purpose —
   the target device is assumed to be a low-spec CPU-only laptop with no
   GPU; verbose system prompts eat directly into latency and the
-  `num_predict` budget for the actual reply.
+  `num_predict` budget for the actual reply. This applies to both model
+  sources, not just local.
+
+## Model source: local vs. cloud
+
+This app supports two ways to run the model, switchable in Settings, no
+code changes needed:
+
+**Local (Ollama)** — the default, and the app's actual thesis: install
+once, then every feature runs on-device with zero ongoing network
+dependency and zero per-request cost. The tradeoff is hardware: `gemma4:e2b`
+needs enough free RAM to hold the model resident, and the one-time ~7GB
+download needs a real internet connection somewhere, even if the machine
+is offline the rest of the time (a campus WiFi session is enough).
+
+**Cloud (Google AI Studio)** — a fallback for a real constraint local mode
+doesn't solve: the students this app is built for are exactly the ones
+least likely to have data or a reliable connection, but they're also not
+guaranteed to have a machine that can run a local model at all. A lot of
+affordable laptops in this context sit at 4 to 8GB of RAM, not the double-
+digit headroom a comfortable local-inference setup assumes. Cloud mode
+trades the offline story for a much lighter local footprint: no multi-GB
+download, no RAM budget to manage, at the cost of needing *some* network
+access (even a slow one, since only short text prompts/replies cross the
+wire, not model weights) and the student's own free-tier Google AI Studio
+API key.
+
+**Rule of thumb:** if the machine can comfortably run a 2B-class model,
+local is strictly better, it's faster once warmed up, fully private, and
+free forever. If the machine can't (very low RAM, no room for the
+download, or the student would rather not tie up disk space), cloud mode
+gets them running immediately with nothing to install beyond the app
+itself. Nothing about the rest of the app changes based on this choice,
+the same syllabus generation, tutoring, notes, and quizzes work either way.
+
+The API key is stored in plaintext in the local SQLite settings row. This
+is intentional and consistent with the app's existing trust model, there
+are no accounts and no multi-tenant boundary, the database file only ever
+lives on the student's own machine, and the key is sent nowhere except
+directly to Google's API from the same local server process that already
+holds it.
 
 ## Quick install (one line, nothing pre-installed required)
 

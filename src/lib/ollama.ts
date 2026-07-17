@@ -63,7 +63,7 @@ export type RouteTag = keyof typeof NUM_PREDICT;
  * temperature is a primary cause of malformed JSON (missing colons,
  * unterminated strings) from the small model. The "json" route runs near-
  * greedy for reliable structure; conversational routes keep some warmth. */
-const TEMPERATURE: Record<RouteTag, number> = {
+export const TEMPERATURE: Record<RouteTag, number> = {
   json: 0.1,
   lesson: 0.5,
   chat: 0.6,

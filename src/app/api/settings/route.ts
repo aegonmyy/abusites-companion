@@ -24,12 +24,18 @@ export async function PUT(request: Request) {
     language?: string;
     temperature?: number | null;
     tokenBudget?: number | null;
+    modelSource?: string;
+    cloudApiKey?: string | null;
+    cloudModel?: string | null;
   };
 
   const data: {
     language?: string;
     temperature?: number | null;
     tokenBudget?: number | null;
+    modelSource?: string;
+    cloudApiKey?: string | null;
+    cloudModel?: string | null;
   } = {};
 
   if (body.language !== undefined) {
@@ -75,6 +81,22 @@ export async function PUT(request: Request) {
         Math.min(TOKEN_BUDGET_RANGE.max, Math.max(TOKEN_BUDGET_RANGE.min, body.tokenBudget)),
       );
     }
+  }
+
+  if (body.modelSource !== undefined) {
+    if (!["local", "cloud"].includes(body.modelSource)) {
+      return NextResponse.json({ error: "modelSource must be one of: local, cloud" }, { status: 400 });
+    }
+    data.modelSource = body.modelSource;
+  }
+
+  // API key and cloud model id — plain strings, trimmed, empty string
+  // normalized to null (same "unset" meaning as null from the client).
+  if (body.cloudApiKey !== undefined) {
+    data.cloudApiKey = body.cloudApiKey === null ? null : body.cloudApiKey.trim() || null;
+  }
+  if (body.cloudModel !== undefined) {
+    data.cloudModel = body.cloudModel === null ? null : body.cloudModel.trim() || null;
   }
 
   if (Object.keys(data).length === 0) {

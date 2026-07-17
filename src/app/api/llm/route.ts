@@ -8,6 +8,7 @@ import {
   type ChatMessage,
   type RouteTag,
 } from "@/lib/ollama";
+import { geminiChatStream, sseToGeminiTextStream, DEFAULT_CLOUD_MODEL } from "@/lib/gemini";
 
 export const runtime = "nodejs";
 
@@ -78,7 +79,15 @@ export async function POST(request: Request) {
   }
 
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
-  const model = settings?.model ?? DEFAULT_MODEL;
+  const isCloud = settings?.modelSource === "cloud";
+  const model = isCloud ? settings?.cloudModel ?? DEFAULT_CLOUD_MODEL : settings?.model ?? DEFAULT_MODEL;
+
+  if (isCloud && !settings?.cloudApiKey) {
+    return new Response(
+      JSON.stringify({ error: "Cloud mode is on but no API key is set. Add one in Settings, or switch back to Local (Ollama)." }),
+      { status: 400, headers: { "Content-Type": "application/json" } },
+    );
+  }
 
   // User-configurable overrides from Settings ("Response creativity" /
   // "Response length") — only ever applied to the conversational routes
@@ -103,7 +112,25 @@ export async function POST(request: Request) {
   let upstream: Response;
   let textStream: ReadableStream<Uint8Array>;
   try {
-    if (audio) {
+    const fullMessages: ChatMessage[] = system
+      ? [{ role: "system", content: system }, ...messages]
+      : messages;
+
+    if (isCloud) {
+      // Gemini's API takes audio as just another part on the same call —
+      // no separate endpoint needed, unlike Ollama's native/OpenAI-compat
+      // split (see ollamaChatAudioStream).
+      upstream = await geminiChatStream({
+        routeTag,
+        messages: fullMessages,
+        apiKey: settings!.cloudApiKey!,
+        model,
+        numPredictOverride,
+        temperatureOverride,
+        audio,
+      });
+      textStream = sseToGeminiTextStream(upstream.body!);
+    } else if (audio) {
       upstream = await ollamaChatAudioStream({
         system,
         history: messages,
@@ -114,9 +141,6 @@ export async function POST(request: Request) {
       });
       textStream = sseToTextStream(upstream.body!);
     } else {
-      const fullMessages: ChatMessage[] = system
-        ? [{ role: "system", content: system }, ...messages]
-        : messages;
       upstream = await ollamaChatStream({
         routeTag,
         messages: fullMessages,
@@ -128,12 +152,11 @@ export async function POST(request: Request) {
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    const hint = isCloud
+      ? "Cloud model call failed. Check your API key in Settings and your internet connection. "
+      : "Local model unavailable. Is Ollama running (http://localhost:11434)? ";
     return new Response(
-      JSON.stringify({
-        error:
-          "Local model unavailable. Is Ollama running (http://localhost:11434)? " +
-          message,
-      }),
+      JSON.stringify({ error: hint + message }),
       { status: 503, headers: { "Content-Type": "application/json" } },
     );
   }

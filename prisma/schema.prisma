@@ -109,6 +109,19 @@ model Settings {
   // num_ctx is intentionally NOT exposed here — see src/lib/ollama.ts.
   temperature Float?   // clamped server-side to [0.0, 1.0]
   tokenBudget Int?     @map("token_budget") // clamped server-side to [80, 500]
+  // Dual model-source support: "local" (Ollama, the default/headline mode)
+  // or "cloud" (Google AI Studio's Gemini API, serving a Gemma model over
+  // HTTPS) — added so students whose hardware can't run a local model at
+  // all still have a path in, at the cost of needing a network connection
+  // and their own API key. See README for when each mode actually makes
+  // sense. cloudApiKey is stored in plaintext in local SQLite: consistent
+  // with this app's existing single-local-user trust model (no accounts,
+  // no multi-tenant boundary, the DB file only ever lives on the student's
+  // own machine) — never sent anywhere except directly to Google's API
+  // from this same server process.
+  modelSource String   @default("local") @map("model_source") // "local" | "cloud"
+  cloudApiKey String?  @map("cloud_api_key")
+  cloudModel  String?  @map("cloud_model") // null = use DEFAULT_CLOUD_MODEL in src/lib/gemini.ts
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("settings")

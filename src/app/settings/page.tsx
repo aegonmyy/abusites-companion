@@ -10,6 +10,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 // of Grinnish.
 
 type Language = "en" | "ha" | "mixed";
+type ModelSource = "local" | "cloud";
 
 const LANGUAGE_OPTIONS: { value: Language; label: string; hint: string }[] = [
   { value: "en", label: "English", hint: "All replies in English." },
@@ -18,6 +19,19 @@ const LANGUAGE_OPTIONS: { value: Language; label: string; hint: string }[] = [
     value: "mixed",
     label: "Hausa + English (natural mix)",
     hint: "Code-switches the way students actually talk.",
+  },
+];
+
+const MODEL_SOURCE_OPTIONS: { value: ModelSource; label: string; hint: string }[] = [
+  {
+    value: "local",
+    label: "Local (Ollama)",
+    hint: "Runs on this device, no internet needed after setup. Best if your machine can run a local model.",
+  },
+  {
+    value: "cloud",
+    label: "Cloud (Google AI Studio)",
+    hint: "Uses your own API key over the internet. Best if your device can't run a local model at all.",
   },
 ];
 
@@ -35,6 +49,10 @@ export default function SettingsPage() {
   const [language, setLanguage] = useState<Language>("en");
   const [temperature, setTemperature] = useState(TEMPERATURE_DEFAULT);
   const [tokenBudget, setTokenBudget] = useState(TOKEN_BUDGET_DEFAULT);
+  const [modelSource, setModelSource] = useState<ModelSource>("local");
+  const [cloudApiKey, setCloudApiKey] = useState("");
+  const [cloudModel, setCloudModel] = useState("");
+  const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -45,15 +63,28 @@ export default function SettingsPage() {
         setLanguage((d.language as Language) ?? "en");
         setTemperature(typeof d.temperature === "number" ? d.temperature : TEMPERATURE_DEFAULT);
         setTokenBudget(typeof d.tokenBudget === "number" ? d.tokenBudget : TOKEN_BUDGET_DEFAULT);
+        setModelSource((d.modelSource as ModelSource) ?? "local");
+        setCloudApiKey(typeof d.cloudApiKey === "string" ? d.cloudApiKey : "");
+        setCloudModel(typeof d.cloudModel === "string" ? d.cloudModel : "");
       })
       .finally(() => setLoading(false));
   }, []);
 
-  async function save(next: Partial<{ language: Language; temperature: number; tokenBudget: number }>) {
+  async function save(
+    next: Partial<{
+      language: Language;
+      temperature: number;
+      tokenBudget: number;
+      modelSource: ModelSource;
+      cloudApiKey: string | null;
+      cloudModel: string | null;
+    }>,
+  ) {
     setSaving(true);
     if (next.language !== undefined) setLanguage(next.language);
     if (next.temperature !== undefined) setTemperature(next.temperature);
     if (next.tokenBudget !== undefined) setTokenBudget(next.tokenBudget);
+    if (next.modelSource !== undefined) setModelSource(next.modelSource);
     try {
       await fetch("/api/settings", {
         method: "PUT",
@@ -72,7 +103,8 @@ export default function SettingsPage() {
           <div>
             <h1 className="text-3xl font-semibold text-white">Settings</h1>
             <p className="mt-2 text-sm text-white/70">
-              No account, no login, nothing leaves your device.
+              No account, no login. Local mode keeps everything on your
+              device; cloud mode sends prompts to Google using your own key.
             </p>
           </div>
           <Link href="/" className="nav-button rounded-full px-4 py-2 text-sm font-semibold">
@@ -87,6 +119,99 @@ export default function SettingsPage() {
           </p>
         ) : (
           <div className="mt-8 flex flex-col gap-6">
+            <fieldset className="flex flex-col gap-3">
+              <legend className="mb-1 text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
+                Model source
+              </legend>
+              {MODEL_SOURCE_OPTIONS.map((opt) => {
+                const active = modelSource === opt.value;
+                return (
+                  <label
+                    key={opt.value}
+                    className={`card-deep flex cursor-pointer items-start gap-3 rounded-2xl p-4 transition ${
+                      active ? "border-emerald-300/50" : "hover:border-white/30"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="modelSource"
+                      value={opt.value}
+                      checked={active}
+                      onChange={() => save({ modelSource: opt.value })}
+                      className="mt-1 h-4 w-4 accent-emerald-400"
+                      data-testid={`model-source-${opt.value}`}
+                    />
+                    <span>
+                      <span className="block font-semibold text-white">{opt.label}</span>
+                      <span className="block text-sm text-white/60">{opt.hint}</span>
+                    </span>
+                  </label>
+                );
+              })}
+
+              {modelSource === "cloud" && (
+                <div className="card-deep flex flex-col gap-4 rounded-2xl p-4" data-testid="cloud-settings">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-semibold text-white/90">Google AI Studio API key</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type={showKey ? "text" : "password"}
+                        value={cloudApiKey}
+                        onChange={(e) => setCloudApiKey(e.target.value)}
+                        placeholder="AIza..."
+                        data-testid="cloud-api-key-input"
+                        className="min-w-0 flex-1 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowKey((s) => !s)}
+                        className="shrink-0 rounded-full border border-white/20 px-3 py-2 text-xs font-semibold text-white/70 hover:border-white/40"
+                      >
+                        {showKey ? "Hide" : "Show"}
+                      </button>
+                    </div>
+                    <span className="text-xs text-white/50">
+                      Stored only in your local database, sent only to Google&apos;s API. Get a
+                      key at{" "}
+                      <a
+                        href="https://aistudio.google.com/apikey"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline hover:text-white"
+                      >
+                        aistudio.google.com/apikey
+                      </a>
+                      .
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-semibold text-white/90">Cloud model (advanced)</label>
+                    <input
+                      value={cloudModel}
+                      onChange={(e) => setCloudModel(e.target.value)}
+                      placeholder="gemma-3-27b-it"
+                      data-testid="cloud-model-input"
+                      className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                    />
+                    <span className="text-xs text-white/50">
+                      Leave blank to use the default. Check Google AI Studio&apos;s model
+                      picker for the exact Gemma model id you have access to.
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => save({ cloudApiKey: cloudApiKey || null, cloudModel: cloudModel || null })}
+                    data-testid="save-cloud-settings-button"
+                    className="w-fit rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-900 disabled:opacity-60"
+                  >
+                    Save cloud settings
+                  </button>
+                </div>
+              )}
+            </fieldset>
+
             <fieldset className="flex flex-col gap-3">
               <legend className="mb-1 text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
                 Language
