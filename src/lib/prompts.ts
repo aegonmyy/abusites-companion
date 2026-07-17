@@ -275,3 +275,25 @@ export function prereqDetectionSystemPrompt(language: Language): string {
     "Each \"prompt\" must be a short, simple question that would help the learner fill that specific gap. If nothing is missing, return an empty array. Keep the list short — at most 3 items.",
   ].join("\n");
 }
+
+/**
+ * CBT's on-demand "AI explanation" call (routeTag "lesson", streamed),
+ * triggered once from the report screen after a session ends — not per
+ * question, one call covering the whole completed session. The caller
+ * builds the user message from every question in the session (question
+ * text, all options, the student's selected letter or "not answered", the
+ * correct letter) — always the full option list regardless of outcome, so
+ * the model can reason about why the tempting wrong options are wrong too,
+ * not just the two that mattered.
+ */
+export function cbtExplanationSystemPrompt(language: Language): string {
+  return [
+    BASE,
+    languageLine(language),
+    "You are reviewing a student's completed CBT (computer-based test) session, question by question. Each question below lists all the options, the student's answer (or 'not answered'), and the correct answer.",
+    "For each question where the student's answer matches the correct one: briefly justify why that answer is correct, reinforcing the reasoning rather than just restating the fact.",
+    "For each question where the student's answer is wrong or missing: gently and encouragingly teach them, explain why the correct answer is right, and briefly why their own choice (if they made one) was a tempting but incorrect option. No judgment, no scolding, just a fast diagnosis and a clear correction.",
+    "Consider all the options given for a question, not only the chosen and correct ones, when explaining what makes the right one right.",
+    "Structure your response question by question using the question numbers given, so the student can match each explanation back to the question. Keep each explanation tight, a few sentences, not an essay.",
+  ].join("\n");
+}
