@@ -6,7 +6,7 @@ build (verified — see "Verification"); reshape headings/length to fit the
 actual submission form before final entry.
 -->
 
-# Grinnish Local — an offline study companion running entirely on a local Gemma model
+# Grinnish Local — an offline-first study companion built on Gemma
 
 ## The problem
 
@@ -22,8 +22,8 @@ moment it would matter most.
 ## The solution
 
 Grinnish Local is a from-scratch local port of the same product surface,
-built so every feature runs against a model resident on the student's own
-laptop, with **zero runtime network dependency**:
+built so every feature runs, **by default**, against a model resident on
+the student's own laptop, with zero runtime network dependency:
 
 - **Study mode**: describe a topic and goal, get an AI-generated syllabus,
   work through it with a streaming local tutor — by text or by voice.
@@ -32,7 +32,10 @@ laptop, with **zero runtime network dependency**:
   concepts, and a short quiz, with follow-up chat (text or voice) scoped
   to that note.
 - **Past questions + CBT practice**: browse a course catalog, practice
-  past exam questions in a timed, scored flow.
+  past exam questions in a timed, scored flow, then get a per-question AI
+  explanation on the review screen — why the correct answer is right, and
+  a gentle nudge at the concept if the student missed it — generated on
+  demand per question, not dumped for the whole session at once.
 - **Question of the day, streaks, bookmarks** — the retention/habit layer,
   all local.
 - **Hausa / English / natural code-switched output** for every
@@ -43,8 +46,27 @@ Everything — Next.js app, SQLite database, and the Gemma model itself via
 [Ollama](https://ollama.com) — runs on one machine. Setup needs internet
 once (dependencies + a ~7GB model pull); after that, the network cable can
 come out. `tests/phase4-offline-audit.mjs` proves this isn't just an
-intention: it drives the whole app end to end on a clean production build
-and fails if a single request ever leaves `localhost`. It passes.
+intention: it drives the whole app end to end, in the default local
+configuration, on a clean production build, and fails if a single request
+ever leaves `localhost`. It passes.
+
+## Cloud mode: an opt-in fallback, not the thesis
+
+Local is the default and the app's actual thesis. But a real constraint
+local mode doesn't solve: the students this app targets are exactly the
+ones least likely to have a machine that can comfortably run a local
+model at all — a lot of affordable laptops in this context sit at 4-8GB
+RAM, below what a resident 2B-class model wants. So Settings exposes a
+second, opt-in model source — a Gemma model served through Google AI
+Studio's free tier — built to the exact same external contract as the
+local client (same route budgets, same streaming shape) so nothing else
+in the app changes based on which is active. It trades the offline
+guarantee for a much lighter local footprint: no multi-GB download, no
+RAM to budget, at the cost of needing *some* network access (only short
+text prompts/replies cross the wire, never model weights) and the
+student's own free API key. The offline audit above tests the default,
+local configuration — cloud mode is an explicit choice a student with a
+weaker machine can make, not the app's normal operating mode.
 
 ## Why e2b, not e4b: the MatFormer trade-off
 
@@ -170,5 +192,5 @@ loud gets the same tutor either way.
 
 ## Links
 
-- Source: (repo URL — fill in before submitting)
+- Source: <https://github.com/aegonmyy/Abu-hackathon>
 - Reference (hosted) version: <https://grinnish.ameenme.dev>
