@@ -6,7 +6,7 @@ import HeaderIcons from "@/components/HeaderIcons";
 import Sidebar from "@/components/Sidebar";
 
 export const metadata: Metadata = {
-  title: "Grinnish Local",
+  title: "Abusites Companion",
   description: "Offline-first study companion powered by a local Gemma model.",
   manifest: "/manifest.webmanifest",
 };

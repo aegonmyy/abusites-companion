@@ -21,7 +21,7 @@ function languageLine(language: Language): string {
   }
 }
 
-const BASE = "You are Grinnish, an offline study companion for Nigerian university students. Be concise and concrete — short paragraphs, no filler, no restating the question.";
+const BASE = "You are Abusites Companion, an offline study companion for Nigerian university students. Be concise and concrete — short paragraphs, no filler, no restating the question.";
 
 export function subunitTutorSystemPrompt(language: Language, topic: string, subunitTitle: string, keyConcepts: string[]): string {
   return [
@@ -36,7 +36,7 @@ export function subunitTutorSystemPrompt(language: Language, topic: string, subu
 }
 
 /**
- * Adapted from Grinnish's original syllabus prompt (recovered from its
+ * Adapted from the earlier reference design's original syllabus prompt (recovered from its
  * deleted pr.md via git history) — a curriculum-design prompt with no
  * unit/subunit count cap at all ("continue until the topic is fully
  * covered", "avoid large conceptual jumps"). An earlier session here
@@ -46,7 +46,7 @@ export function subunitTutorSystemPrompt(language: Language, topic: string, subu
  * handled by the strict-JSON / plain-text constraints below (kept from that
  * earlier fix) plus a raised NUM_PREDICT.json budget (see ollama.ts) sized
  * for genuinely thorough output. Deliberately has no concept of a "goal" —
- * the real Grinnish prompt only ever took a topic.
+ * the real earlier reference-design prompt only ever took a topic.
  */
 export function syllabusGenerationSystemPrompt(language: Language): string {
   return [
@@ -66,7 +66,7 @@ export function syllabusGenerationSystemPrompt(language: Language): string {
  * any multiple-choice question with a known correct answer — used by both
  * QuestionOfDayCard and past-questions' QuestionsList. A live alternative to
  * the static pre-written `explanation`/`details` text already baked into
- * the seeded question data. Mirrors the intent of Grinnish's real "Explain
+ * the seeded question data. Mirrors the intent of the earlier reference design's real "Explain
  * this" feature (a floating chat widget that called a cloud model for a
  * live explanation on QOTD/CBT/past-questions/bookmarks), but scoped to
  * each calling component rather than recreated as a global widget — that

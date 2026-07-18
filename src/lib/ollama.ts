@@ -31,7 +31,7 @@ const NUM_CTX = 4096;
  * stream), so the cap has to be large enough to survive it. This is a
  * documented, verified finding, not a guess — see docs/AUDIO_FINDING.md. */
 export const NUM_PREDICT = {
-  // Raised from 400 when the syllabus prompt was restored to Grinnish's real,
+  // Raised from 400 when the syllabus prompt was restored to the earlier reference design's real,
   // uncapped "continue until fully covered" curriculum-design prompt (see
   // prompts.ts) instead of the earlier 2-3-unit/2-subunit/2-concept cap that
   // was only ever a JSON-reliability workaround. Measured against the local

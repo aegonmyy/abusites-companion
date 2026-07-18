@@ -1,11 +1,11 @@
 "use client";
 
-// Ported from Grinnish's app/study-mode/StudyIntakeForm.tsx. Markup/classes
-// are Grinnish's verbatim: the generating overlay with the liquid-fill spinner,
+// Ported from the earlier reference design's app/study-mode/StudyIntakeForm.tsx. Markup/classes
+// are the earlier reference design's verbatim: the generating overlay with the liquid-fill spinner,
 // the "Previous syllabi" chips + slide-in menu, the topic/goal form, Auto fill.
 // Rewired to the local target's generation pipeline: intake -> /api/llm
 // (routeTag json, syllabusGenerationSystemPrompt) -> persist via
-// /api/study/syllabus, then render the ported SyllabusView inline (Grinnish's
+// /api/study/syllabus, then render the ported SyllabusView inline (the earlier reference design's
 // single-page model). Previous syllabi come from GET /api/study/syllabus.
 
 import { useEffect, useState } from "react";

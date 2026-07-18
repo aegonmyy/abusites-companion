@@ -7,6 +7,6 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env.DATABASE_URL ?? "file:./data/grinnish.db",
+    url: process.env.DATABASE_URL ?? "file:./data/abusites.db",
   },
 });

@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
-// Settings has no Grinnish equivalent (the hosted app kept language in the
-// account/profile). The target's local language setting is kept as-is and
-// dressed in Grinnish's own glass-card / pill vocabulary so it reads as part
-// of Grinnish.
+// Settings has no equivalent in the earlier reference design (the hosted app kept
+// language in the account/profile). The target's local language setting is
+// kept as-is and dressed in the same glass-card / pill vocabulary used
+// throughout, so it reads as part of the same design system.
 
 type Language = "en" | "ha" | "mixed";
 type ModelSource = "local" | "cloud";

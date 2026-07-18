@@ -65,11 +65,11 @@ export default function Sidebar() {
     >
       <Link
         href="/"
-        aria-label="Grinnish home"
+        aria-label="Abusites Companion home"
         className="mb-2 flex items-center gap-2 rounded-2xl px-2 py-2 opacity-95 transition hover:bg-white/5"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.svg" alt="Grinnish" className="h-9 w-auto" />
+        <img src="/logo.svg" alt="Abusites Companion" className="h-9 w-auto" />
       </Link>
       {LINKS.map(({ href, key, Icon, testid }) => {
         const active = isActive(pathname, href);

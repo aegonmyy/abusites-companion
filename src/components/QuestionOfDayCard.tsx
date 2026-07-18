@@ -30,7 +30,7 @@ type QotdResponse = {
 
 const OPTION_LABELS = ["A", "B", "C", "D"] as const;
 
-// Markup ported verbatim from Grinnish's QuestionOfDayCard (tone="dark"): the
+// Markup ported verbatim from the earlier reference design's QuestionOfDayCard (tone="dark"): the
 // glassmorphism card, uppercase eyebrow, "Daily quiz" pill, and the layered
 // option-button states. Data layer is the local target's — self-fetches
 // /api/qotd and answers via /api/qotd/answer (no auth, one implicit user).

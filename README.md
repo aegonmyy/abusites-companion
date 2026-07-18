@@ -1,4 +1,4 @@
-# Grinnish Local
+# Abusites Companion
 
 An offline study companion for Nigerian university students — AI-generated
 syllabi, a streaming tutor you can talk to by text or voice, past-question
@@ -6,20 +6,18 @@ CBT practice, and paste/PDF/photo notes with auto-generated summaries and
 quizzes — running entirely on the student's own machine against a local
 Gemma model. No account, no login, no cloud calls at runtime.
 
-This is a local, single-user port of [Grinnish](https://grinnish.ameenme.dev),
-a hosted SaaS built on Supabase + Gemini. Everything here runs on-device
-instead: SQLite instead of Postgres, [Ollama](https://ollama.com) running
-`gemma4:e2b` instead of the Gemini API, no auth (one implicit local user).
-It exists for students who don't have a reliable, affordable connection to
-run the hosted version — the whole app, model included, works with the
-network cable pulled out.
+Built single-user and local-first from the ground up: SQLite instead of a
+hosted database, [Ollama](https://ollama.com) running `gemma4:e2b` on-device
+instead of a cloud API, no auth (one implicit local user). It exists for
+students who don't have a reliable, affordable connection — the whole app,
+model included, works with the network cable pulled out.
 
 ## Why this exists
 
 Nigerian university students studying in Hausa-speaking regions often deal
 with expensive or unreliable mobile data. A cloud-only study app is
 unusable exactly when it would help most — the week before an exam, with
-patchy signal. Grinnish Local trades scale and a hosted database for
+patchy signal. Abusites Companion trades scale and a hosted database for
 something that keeps working when the connection doesn't: install once
 (needs internet for the npm/model download), then every feature — syllabus
 generation, tutoring, notes, quizzes — runs against a model resident in RAM
@@ -58,7 +56,7 @@ on the same machine.
   pinned to `--webpack` (avoids a Turbopack over-bundling issue observed
   during development).
 - **Prisma 7 + SQLite** (`@prisma/adapter-better-sqlite3`) — see
-  `prisma/schema.prisma`. One local file, `data/grinnish.db`.
+  `prisma/schema.prisma`. One local file, `data/abusites.db`.
 - **`/api/llm`** (`src/app/api/llm/route.ts`) is the single inference entry
   point for the whole app. Every feature funnels through it, which keeps
   the mandatory call shape in one place: `think:false`, `num_ctx:4096`,
@@ -148,7 +146,7 @@ Prerequisites: [Node.js 20+](https://nodejs.org),
 
 ```bash
 git clone <this repo>
-cd grinnish-local
+cd abusites-companion
 ./setup.sh        # macOS/Linux
 # or
 .\setup.ps1       # Windows (PowerShell)
@@ -173,7 +171,7 @@ your platform):
 ```bash
 ollama pull gemma4:e2b
 npm install                 # runs `prisma generate` via postinstall
-npx prisma migrate deploy   # creates data/grinnish.db with the schema
+npx prisma migrate deploy   # creates data/abusites.db with the schema
 npm run seed                # loads the full catalog from the bundled dataset
 npm run build
 npm start

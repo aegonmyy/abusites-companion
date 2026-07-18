@@ -1,9 +1,9 @@
 "use client";
 
-// Ported from Grinnish's app/cbt/[courseId]/CbtClient.tsx — verbatim markup and
+// Ported from the earlier reference design's app/cbt/[courseId]/CbtClient.tsx — verbatim markup and
 // behavior (setup: questions-per-year + custom timer; test: paged questions,
 // countdown, one-minute toast, submit-confirm; report: score cards; review:
-// per-question correct/wrong highlighting). Grinnish's CBT is entirely
+// per-question correct/wrong highlighting). The earlier reference design's CBT is entirely
 // client-side and scores locally, so nothing here needed rewiring except a
 // streak check-in on submit (the local app's "did an activity today" signal).
 

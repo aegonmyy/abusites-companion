@@ -19,7 +19,7 @@ function isActive(pathname: string, href: string): boolean {
  * one tap deep. They now live as small persistent icon buttons near the
  * brand mark, Home-only (every other route reaches them via the bottom tab
  * bar / dashboard content, so keeping them everywhere was redundant chrome).
- * Styled transparent/blended rather than Grinnish's boxed `.nav-button`
+ * Styled transparent/blended rather than the earlier reference design's boxed `.nav-button`
  * chrome, which read as a contrasting dark pill against the header — scoped
  * to just these two buttons, `.nav-button` itself is untouched. Mobile
  * only, same breakpoint as BottomTabBar.

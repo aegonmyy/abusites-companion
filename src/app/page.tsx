@@ -3,7 +3,7 @@ import QuestionOfDayCard from "@/components/QuestionOfDayCard";
 import StreakBadge from "@/components/StreakBadge";
 import ContinueCard from "@/components/ContinueCard";
 
-// Ported from Grinnish's app/dashboard/page.tsx, then trimmed to remove
+// Ported from the earlier reference design's app/dashboard/page.tsx, then trimmed to remove
 // duplication: the quick-link row (New study session / Past questions /
 // Notes) duplicated the floating bottom tab bar, and the full Bookmarks +
 // Settings cards duplicated the Home-only HeaderIcons (see

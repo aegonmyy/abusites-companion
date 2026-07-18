@@ -5,7 +5,7 @@ import { use, useEffect, useState } from "react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import CbtClient from "./CbtClient";
 
-// Ported from Grinnish's app/cbt/[courseId]/page.tsx (header + layout). The
+// Ported from the earlier reference design's app/cbt/[courseId]/page.tsx (header + layout). The
 // server/Supabase question load becomes a client fetch of the local
 // /api/past-questions/courses/{id}, adapted to CbtClient's question shape.
 type LocalCourseDetail = {

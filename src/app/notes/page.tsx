@@ -1,10 +1,10 @@
 "use client";
 
-// Notes list. Grinnish's Notes screen was a static mock (fake chat, dummy
+// Notes list. The earlier reference design's Notes screen was a static mock (fake chat, dummy
 // "focus settings"), so its markup can't be copied literally without losing
-// the local app's real note features. Instead it's rebuilt in Grinnish's own
+// the local app's real note features. Instead it's rebuilt in that design's own
 // vocabulary — the max-w-6xl header, glass cards, white pill buttons — so it
-// reads as Grinnish while driving the real /api/notes data.
+// stays visually consistent while driving the real /api/notes data.
 
 import Link from "next/link";
 import { useEffect, useState } from "react";

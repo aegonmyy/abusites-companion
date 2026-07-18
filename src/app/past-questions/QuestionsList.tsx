@@ -1,6 +1,6 @@
 "use client";
 
-// Ported from Grinnish's app/past-questions/QuestionsList.tsx. Markup/classes
+// Ported from the earlier reference design's app/past-questions/QuestionsList.tsx. Markup/classes
 // verbatim: the Focus Year filter pills, the conic-gradient "Orbit progress"
 // ring, per-year question cards, Mark-as-read / Bookmark / Explain controls,
 // Show-answer, and the right-click Export menu. Rewiring:

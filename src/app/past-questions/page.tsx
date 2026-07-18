@@ -5,10 +5,10 @@ import { useEffect, useState } from "react";
 import CourseList, { type CourseSummary } from "./CourseList";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
-// Ported from Grinnish's app/past-questions/page.tsx. Server + Supabase data
+// Ported from the earlier reference design's app/past-questions/page.tsx. Server + Supabase data
 // load becomes a client fetch of the local /api/past-questions/courses. Auth
 // header links dropped (no auth) — replaced with a "Back to dashboard" link in
-// Grinnish's nav-button vocabulary.
+// the earlier reference design's nav-button vocabulary.
 export default function PastQuestionsPage() {
   const [courses, setCourses] = useState<CourseSummary[] | null>(null);
 

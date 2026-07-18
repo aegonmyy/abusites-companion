@@ -18,9 +18,9 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 /**
- * Persistent mobile bottom nav, reintroduced after the Grinnish port dropped
+ * Persistent mobile bottom nav, reintroduced after the initial port dropped
  * the old edge-to-edge NavBar in favor of in-page cards. Styled as one of
- * Grinnish's own floating glass cards (`bg-white/10 border-white/10
+ * the earlier reference design's own floating glass cards (`bg-white/10 border-white/10
  * backdrop-blur`, `rounded-*`, `shadow-xl` — the exact vocabulary used by
  * every card on the dashboard, see src/app/page.tsx) rather than a flat bar
  * docked to the screen edge: `inset-x-4 bottom-4` keeps a real margin on

@@ -2,8 +2,8 @@
 
 // Note detail. Data logic (load note, quiz scoring, note-scoped chat + voice
 // via /api/llm, bookmark, delete) is the local target's, unchanged. Markup is
-// rebuilt in Grinnish's vocabulary: glass cards, concept chips as bordered
-// pills, dark option buttons, and the Grinnish study-chat bubbles
+// rebuilt in the earlier reference design's vocabulary: glass cards, concept chips as bordered
+// pills, dark option buttons, and the same study-chat bubbles
 // (self-end bg-white/15 / self-start bg-white/5) for the follow-up chat.
 
 import { use, useEffect, useRef, useState } from "react";

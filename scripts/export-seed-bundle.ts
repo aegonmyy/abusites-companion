@@ -1,7 +1,7 @@
 /**
  * MAINTAINER-ONLY. Exports the catalog tables (universities, faculties,
  * departments, courses, past questions) from the CURRENT local SQLite DB
- * (`data/grinnish.db`) into a static, git-committed JSON bundle at
+ * (`data/abusites.db`) into a static, git-committed JSON bundle at
  * `prisma/seed-bundle/catalog.json`.
  *
  * This is how the bundle gets refreshed after a maintainer has pulled fresh

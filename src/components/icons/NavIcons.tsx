@@ -2,7 +2,7 @@
 // and Sidebar.tsx (desktop) don't each carry their own copy of the same SVGs.
 // Stroke-based style established by MicButton.tsx (stroke="currentColor",
 // strokeWidth ~1.8) and carried over from the pre-port NavBar (deleted in
-// 2669d9f) into Grinnish's floating glass cards.
+// 2669d9f) into the earlier reference design's floating glass cards.
 export type IconProps = { className?: string };
 
 export function HomeIcon({ className }: IconProps) {

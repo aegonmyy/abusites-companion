@@ -1,9 +1,9 @@
 "use client";
 
-// Ported from Grinnish's app/bookmarks/page.tsx + BookmarksList.tsx. Grinnish's
+// Ported from the earlier reference design's app/bookmarks/page.tsx + BookmarksList.tsx. That
 // list was past-questions-only (grouped by year from Supabase); the local app's
 // bookmarks are mixed-kind (past_question | note | subunit) from /api/bookmarks,
-// so the items are rendered in Grinnish's own glass-card vocabulary — the same
+// so the items are rendered in the earlier reference design's own glass-card vocabulary — the same
 // section/card/remove-pill classes — as a generic saved-items list.
 
 import Link from "next/link";

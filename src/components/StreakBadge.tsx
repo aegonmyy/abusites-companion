@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-// Markup ported verbatim from Grinnish's dashboard/StreakBadge.tsx (the pill
+// Markup ported verbatim from the earlier reference design's dashboard/StreakBadge.tsx (the pill
 // badges + the gradient fire "Check in" button). Rewired to the local
 // target's streak API: GET /api/streaks for the initial count, POST
 // /api/streaks to check in (idempotent per day). No auth — always enabled.

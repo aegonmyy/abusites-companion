@@ -22,10 +22,10 @@
  * Source table for questions is `question_ai` (confirmed via direct query
  * to be the actively-populated one — 8,244 rows vs. `past_questions`'
  * 4,643 and a separate unused `questions` table's 6,297 — and it's the
- * only source Grinnish's own reference code
+ * only source the earlier reference design's own reference code
  * (src/lib/past-questions.ts:loadPastQuestionsCourseData) actually reads
  * from). Filtering follows the project owner's explicit instruction, which
- * is stricter than Grinnish's own: Grinnish only excludes
+ * is stricter than that reference code's own: it only excludes
  * `does_not_belong = true`; we exclude BOTH `does_not_belong = true` AND
  * `needs_review = true`.
  *
@@ -56,7 +56,7 @@ function toDate(value: unknown): Date | undefined {
 
 const OPTION_LABELS = ["A", "B", "C", "D"];
 
-/** Mirrors Grinnish's own mapCorrectOption: returns null (not a throw) for
+/** Mirrors the earlier reference design's own mapCorrectOption: returns null (not a throw) for
  * anything that isn't a clean A/B/C/D letter — ~0.3% of question_ai rows
  * have a malformed correct_option (e.g. "None of the above", "IV"); those
  * questions stay browsable but unscoreable in CBT rather than being

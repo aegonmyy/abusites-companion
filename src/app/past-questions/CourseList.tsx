@@ -1,10 +1,10 @@
 "use client";
 
-// Ported from Grinnish's app/past-questions/CourseList.tsx. Markup/classes are
+// Ported from the earlier reference design's app/past-questions/CourseList.tsx. Markup/classes are
 // verbatim (search, target-course select, Start CBT / View past questions, the
 // course cards, and the full-screen questions modal with its shimmer skeleton).
 // openCourse now fetches the local /api/past-questions/courses/{id} and adapts
-// that response into the CoursePayload shape Grinnish's QuestionsList expects.
+// that response into the CoursePayload shape the earlier reference design's QuestionsList expects.
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";

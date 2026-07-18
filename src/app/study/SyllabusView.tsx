@@ -1,7 +1,7 @@
 "use client";
 
-// Ported from Grinnish's app/study-mode/SyllabusView.tsx. ALL markup/classes
-// are Grinnish's verbatim (the topic/unit glass cards, Start/Completed/Locked
+// Ported from the earlier reference design's app/study-mode/SyllabusView.tsx. ALL markup/classes
+// are the earlier reference design's verbatim (the topic/unit glass cards, Start/Completed/Locked
 // subunit states, prerequisite chips, the split chat+syllabus grid, the
 // assistant markdown bubbles, scroll-to-bottom, "Re-explain deeper"). Only the
 // data layer is rewired to the local target:
@@ -9,9 +9,9 @@
 //   - /api/study-mode/subunit / progress  ->  /api/llm + /api/study/subunit/progress
 //   - progress load          ->  /api/study/syllabus/{id} (completed states only)
 // The target's SubunitProgress row has no messages column, so per-subunit chat
-// history is not persisted across reloads (completed state is). Grinnish's
+// history is not persisted across reloads (completed state is). The earlier reference design's
 // AI-detected "missing prerequisite" chat chips are now wired to a real local
-// call (routeTag "json", prereqDetectionSystemPrompt) instead of Grinnish's
+// call (routeTag "json", prereqDetectionSystemPrompt) instead of the earlier reference design's
 // separate cloud model pool — see detectMissingPrereqs below. The
 // syllabus-tree prerequisite locking/labels are unrelated and unchanged.
 
@@ -44,7 +44,7 @@ type Subunit = {
 };
 
 // Normalizes the local syllabus JSON (which omits unit.description and
-// subunit.prerequisites) into the shape Grinnish's markup reads, so no field
+// subunit.prerequisites) into the shape the earlier reference design's markup reads, so no field
 // access ever hits undefined. Data-shape adapter only — markup untouched.
 const parseSyllabus = (raw: string): Syllabus | null => {
   const trimmed = raw.trim();
@@ -184,7 +184,7 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
   }, [chatOpen, messages]);
 
   // Plain-text stream reader for the local /api/llm endpoint (replaces
-  // Grinnish's Gemini SSE JSON-chunk parser). Appends decoded chunks straight
+  // the earlier reference design's Gemini SSE JSON-chunk parser). Appends decoded chunks straight
   // to the active assistant bubble.
   const streamResponse = async (
     response: Response,

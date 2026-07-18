@@ -36,7 +36,7 @@ const LANG_LINE: Record<LangMode, string> = {
 };
 
 const SYSTEM_BASE =
-  "You are Grinnish, an offline study companion for Nigerian university students. Be concise and concrete — short paragraphs, no filler, no restating the question.";
+  "You are Abusites Companion, an offline study companion for Nigerian university students. Be concise and concrete — short paragraphs, no filler, no restating the question.";
 
 // 30 prompts: 3 subjects x 10 each (4 Hausa, 3 mixed, 3 English per subject).
 const PROMPTS: Prompt[] = [

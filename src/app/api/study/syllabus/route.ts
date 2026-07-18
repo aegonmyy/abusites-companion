@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 /**
- * Lists saved syllabi, newest first, in the shape Grinnish's ported
+ * Lists saved syllabi, newest first, in the shape the earlier reference design's ported
  * StudyIntakeForm expects for its "Previous syllabi" chips:
  * { id, topic, created_at, syllabus_json:{ topic, goal, units } }.
  * The embedded syllabus_json carries topic + goal so the ported SyllabusView

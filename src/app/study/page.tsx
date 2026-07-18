@@ -1,6 +1,6 @@
 import StudyIntakeForm from "./StudyIntakeForm";
 
-// Ported from Grinnish's app/study-mode/page.tsx (the glass panel wrapper).
+// Ported from the earlier reference design's app/study-mode/page.tsx (the glass panel wrapper).
 // requireActiveUser is dropped — no auth, single implicit local user.
 export const dynamic = "force-dynamic";
 

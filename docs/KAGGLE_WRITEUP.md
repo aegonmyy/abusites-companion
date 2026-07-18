@@ -1,29 +1,28 @@
 <!--
-Draft Kaggle competition writeup for Grinnish Local — Build With Gemma:
+Draft Kaggle competition writeup for Abusites Companion — Build With Gemma:
 GDG on Campus ABU Zaria, Track 1 (Gemma for Local Languages & Literacy,
 Hausa). ~1500-word target per the brief. Content is accurate as of this
 build (verified — see "Verification"); reshape headings/length to fit the
 actual submission form before final entry.
 -->
 
-# Grinnish Local — an offline-first study companion built on Gemma
+# Abusites Companion — an offline-first study companion built on Gemma
 
 ## The problem
 
-Grinnish is a hosted study platform for Nigerian university students:
-AI-generated syllabi, a tutor chat, past-question practice, notes and
-quizzes. It works well — if you have a reliable, affordable internet
-connection. Many students in Hausa-speaking regions of Nigeria don't.
-Mobile data is expensive relative to income, and connectivity is patchy
-exactly where and when students need to study — the days before an exam,
-in a hostel room, on a bus. A cloud-only tool becomes unusable at the
-moment it would matter most.
+Nigerian university students juggle AI-generated syllabi, tutoring, past-
+question practice, and note-taking across a patchwork of tools, most of
+which assume a reliable, affordable internet connection. Many students in
+Hausa-speaking regions of Nigeria don't have one. Mobile data is expensive
+relative to income, and connectivity is patchy exactly where and when
+students need to study — the days before an exam, in a hostel room, on a
+bus. A cloud-only tool becomes unusable at the moment it would matter most.
 
 ## The solution
 
-Grinnish Local is a from-scratch local port of the same product surface,
-built so every feature runs, **by default**, against a model resident on
-the student's own laptop, with zero runtime network dependency:
+Abusites Companion is a study app built so every feature runs, **by
+default**, against a model resident on the student's own laptop, with zero
+runtime network dependency:
 
 - **Study mode**: describe a topic and goal, get an AI-generated syllabus,
   work through it with a streaming local tutor — by text or by voice.
@@ -169,7 +168,7 @@ flagged rather than skipped or faked.
 
 The target user is a Nigerian university student, plausibly a Hausa
 speaker, on a modest laptop, with limited or expensive connectivity. For
-that user, Grinnish Local turns "no signal this week" from "can't study
+that user, Abusites Companion turns "no signal this week" from "can't study
 with the tool" into "doesn't matter, it never needed signal." Voice input
 matters specifically for the literacy angle of this track: a student who
 finds typing a technical question slower or harder than asking it out
@@ -193,4 +192,3 @@ loud gets the same tutor either way.
 ## Links
 
 - Source: <https://github.com/aegonmyy/Abu-hackathon>
-- Reference (hosted) version: <https://grinnish.ameenme.dev>
