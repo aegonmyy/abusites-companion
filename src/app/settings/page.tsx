@@ -31,20 +31,16 @@ const MODEL_SOURCE_OPTIONS: { value: ModelSource; label: string; hint: string }[
   },
 ];
 
-// Same safe ranges enforced server-side in /api/settings — kept in sync by
-// hand since this is a small, stable pair of constants (not worth a shared
-// module for two numbers).
+// Same safe range enforced server-side in /api/settings — kept in sync by
+// hand since this is a small, stable constant (not worth a shared module
+// for one number).
 const TEMPERATURE_DEFAULT = 0.6; // matches the "chat" route default in ollama.ts
-const TOKEN_BUDGET_DEFAULT = 200; // matches the "chat" route default in ollama.ts
 const TEMPERATURE_MIN = 0;
 const TEMPERATURE_MAX = 1;
-const TOKEN_BUDGET_MIN = 80;
-const TOKEN_BUDGET_MAX = 500;
 
 export default function SettingsPage() {
   const [language, setLanguage] = useState<StartLanguage>("english");
   const [temperature, setTemperature] = useState(TEMPERATURE_DEFAULT);
-  const [tokenBudget, setTokenBudget] = useState(TOKEN_BUDGET_DEFAULT);
   const [modelSource, setModelSource] = useState<ModelSource>("local");
   const [cloudApiKey, setCloudApiKey] = useState("");
   // GET /api/settings now returns a masked cloudApiKey (see route.ts) —
@@ -64,7 +60,6 @@ export default function SettingsPage() {
       .then((d) => {
         setLanguage(d.language === "hausa" ? "hausa" : "english");
         setTemperature(typeof d.temperature === "number" ? d.temperature : TEMPERATURE_DEFAULT);
-        setTokenBudget(typeof d.tokenBudget === "number" ? d.tokenBudget : TOKEN_BUDGET_DEFAULT);
         setModelSource((d.modelSource as ModelSource) ?? "local");
         setCloudApiKey(typeof d.cloudApiKey === "string" ? d.cloudApiKey : "");
         setCloudModel(typeof d.cloudModel === "string" ? d.cloudModel : "");
@@ -76,7 +71,6 @@ export default function SettingsPage() {
     next: Partial<{
       language: StartLanguage;
       temperature: number;
-      tokenBudget: number;
       modelSource: ModelSource;
       cloudApiKey: string | null;
       cloudModel: string | null;
@@ -86,7 +80,6 @@ export default function SettingsPage() {
     setSaveError(null);
     if (next.language !== undefined) setLanguage(next.language);
     if (next.temperature !== undefined) setTemperature(next.temperature);
-    if (next.tokenBudget !== undefined) setTokenBudget(next.tokenBudget);
     if (next.modelSource !== undefined) setModelSource(next.modelSource);
     try {
       const res = await fetch("/api/settings", {
@@ -291,7 +284,9 @@ export default function SettingsPage() {
               </legend>
               <p className="-mt-3 text-xs text-white/50">
                 Applies to the tutor, chat, and voice replies. Note generation and
-                syllabus generation stay fixed for reliability.
+                syllabus generation stay fixed for reliability. Replies aren&apos;t
+                length-capped — generation is already faster than you can read, so
+                answers finish naturally instead of cutting off mid-thought.
               </p>
 
               <label className="flex flex-col gap-2">
@@ -311,28 +306,6 @@ export default function SettingsPage() {
                 />
                 <span className="text-xs text-white/50">
                   Lower = more predictable and to-the-point. Higher = more varied phrasing.
-                </span>
-              </label>
-
-              <label className="flex flex-col gap-2">
-                <span className="flex items-center justify-between text-sm font-semibold text-white/90">
-                  Response length
-                  <span className="font-mono text-xs text-white/60">{tokenBudget} tokens</span>
-                </span>
-                <input
-                  type="range"
-                  min={TOKEN_BUDGET_MIN}
-                  max={TOKEN_BUDGET_MAX}
-                  step={10}
-                  value={tokenBudget}
-                  onChange={(e) => save({ tokenBudget: Number(e.target.value) })}
-                  className="w-full accent-emerald-400"
-                  data-testid="token-budget-slider"
-                />
-                <span className="text-xs text-white/50">
-                  Shorter replies come back faster on slower hardware. Local
-                  mode only, cloud replies aren&apos;t capped by this since
-                  they don&apos;t run on your device.
                 </span>
               </label>
             </fieldset>

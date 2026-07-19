@@ -20,15 +20,15 @@ type LlmRequestBody = {
    * this call through the audio-capable OpenAI-compatible endpoint instead
    * of the native one. See ollamaChatAudioStream for why. */
   audio?: { base64: string; format: string };
-  /** Explicit per-call token-budget override, distinct from the Settings-
-   * driven "Response length" override below. Used by Notes: the segment-
+  /** Explicit per-call token-budget override. Used by Notes: the segment-
    * split call ("json") asks for a smaller budget than the full syllabus
    * cap, and the per-segment deep-explanation call ("lesson") uses this to
    * implement the three depth tiers (quick/standard/deep) as a per-request
    * choice rather than new fixed NUM_PREDICT route entries. Takes priority
-   * over the Settings tokenBudget override when both are present, since it
-   * reflects a deliberate choice made for this specific call, not the
-   * user's general reply-length preference. Clamped defensively either way. */
+   * over the route's own NUM_PREDICT default when present. Clamped
+   * defensively either way. There's no Settings-level "Response length"
+   * override anymore — see ollama.ts's NUM_PREDICT doc comment for why the
+   * conversational routes are uncapped by default now. */
   numPredictOverride?: number;
 };
 
@@ -89,25 +89,20 @@ export async function POST(request: Request) {
     );
   }
 
-  // User-configurable overrides from Settings ("Response creativity" /
-  // "Response length") — only ever applied to the conversational routes
-  // (lesson/chat/gloss/audio), never "json" (structural JSON reliability
-  // stays fixed regardless of what the user picks). Re-clamped here even
-  // though /api/settings already clamps on write, since this is the actual
-  // point where an out-of-range value would reach Ollama.
+  // User-configurable override from Settings ("Response creativity") — only
+  // ever applied to the conversational routes (lesson/chat/gloss/audio),
+  // never "json" (structural JSON reliability stays fixed regardless of
+  // what the user picks). Re-clamped here even though /api/settings already
+  // clamps on write, since this is the actual point where an out-of-range
+  // value would reach Ollama.
   const temperatureOverride =
     routeTag !== "json" && typeof settings?.temperature === "number"
       ? Math.min(1, Math.max(0, settings.temperature))
       : undefined;
-  const settingsNumPredictOverride =
-    routeTag !== "json" && typeof settings?.tokenBudget === "number"
-      ? Math.min(500, Math.max(80, Math.round(settings.tokenBudget)))
-      : undefined;
-  const requestNumPredictOverride =
+  const numPredictOverride =
     typeof clientNumPredictOverride === "number" && Number.isFinite(clientNumPredictOverride)
       ? Math.min(2500, Math.max(80, Math.round(clientNumPredictOverride)))
       : undefined;
-  const numPredictOverride = requestNumPredictOverride ?? settingsNumPredictOverride;
 
   let upstream: Response;
   let textStream: ReadableStream<Uint8Array>;

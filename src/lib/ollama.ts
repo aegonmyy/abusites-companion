@@ -20,16 +20,24 @@ const KEEP_ALIVE = "30m";
 
 const NUM_CTX = 4096;
 
-/** Per-route output caps (tokens). Short output is a product decision.
+/** Per-route output caps (tokens). "json" keeps a real ceiling (structural
+ * reliability, see the comment on its value below); the four conversational
+ * routes (lesson/chat/gloss/audio) are uncapped (-1 = Ollama's "generate
+ * until natural stop or context runs out" sentinel, not a JS placeholder) —
+ * product decision that response generation is already faster than a
+ * student reads, so a token cap only risks cutting an answer off mid-
+ * thought for no real time savings. Verified directly against the real
+ * model before shipping: num_predict:-1 on a real tutor-style prompt
+ * produced 1347 tokens with `done_reason:"stop"` (a genuine natural
+ * ending, not truncation) rather than the old 200-token chat cap's
+ * mid-sentence cutoff. Bounded only by num_ctx (4096) as a hard ceiling,
+ * same as everything else in this file — not literally infinite, just no
+ * artificial cap below that.
  *
- * "audio" is intentionally much larger than "chat": empirically, Ollama's
- * OpenAI-compatible endpoint (the only one that accepts audio input — see
- * ollamaChatAudioStream) does not honor think:false / enable_thinking:false
- * for this model — every audio call produces a full internal reasoning
- * trace before the real answer, regardless of what's sent. That reasoning
- * burns num_predict budget the caller never sees (it's filtered out of the
- * stream), so the cap has to be large enough to survive it. This is a
- * documented, verified finding, not a guess — see docs/AUDIO_FINDING.md. */
+ * Callers that need a real per-request cap for other reasons (Notes'
+ * depth-tiered explanations, the quiz-count-scaled call) still pass an
+ * explicit numPredictOverride, which takes priority over these route
+ * defaults regardless — see ollamaChatStream below. */
 export const NUM_PREDICT = {
   // Raised from 400 when the syllabus prompt was restored to the earlier reference design's real,
   // uncapped "continue until fully covered" curriculum-design prompt (see
@@ -50,10 +58,10 @@ export const NUM_PREDICT = {
   // no latency change — 1500 is only ever reached by the broadest topics,
   // and only as a ceiling, not the norm.
   json: 1500,
-  lesson: 250,
-  chat: 200,
-  gloss: 80,
-  audio: 400,
+  lesson: -1,
+  chat: -1,
+  gloss: -1,
+  audio: -1,
 } as const;
 
 export type RouteTag = keyof typeof NUM_PREDICT;

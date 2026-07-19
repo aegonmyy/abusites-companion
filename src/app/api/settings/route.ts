@@ -39,13 +39,11 @@ export async function GET() {
 }
 
 const TEMPERATURE_RANGE = { min: 0, max: 1 } as const;
-const TOKEN_BUDGET_RANGE = { min: 80, max: 500 } as const;
 
 export async function PUT(request: Request) {
   const body = (await request.json()) as {
     language?: string;
     temperature?: number | null;
-    tokenBudget?: number | null;
     modelSource?: string;
     cloudApiKey?: string | null;
     cloudModel?: string | null;
@@ -54,7 +52,6 @@ export async function PUT(request: Request) {
   const data: {
     language?: string;
     temperature?: number | null;
-    tokenBudget?: number | null;
     modelSource?: string;
     cloudApiKey?: string | null;
     cloudModel?: string | null;
@@ -67,12 +64,11 @@ export async function PUT(request: Request) {
     data.language = body.language;
   }
 
-  // Temperature ("Response creativity") and token budget ("Response
-  // length") only ever affect the conversational routes (lesson/chat/gloss/
-  // audio) — see src/lib/ollama.ts. num_ctx is not, and never will be, a
-  // setting: exposing it risks OOMing the target hardware. Both are
-  // nullable (null/undefined = "use the existing per-route default"),
-  // clamped here server-side, not just trusted from the client.
+  // Temperature ("Response creativity") only ever affects the conversational
+  // routes (lesson/chat/gloss/audio) — see src/lib/ollama.ts. num_ctx is
+  // not, and never will be, a setting: exposing it risks OOMing the target
+  // hardware. Nullable (null/undefined = "use the existing per-route
+  // default"), clamped here server-side, not just trusted from the client.
   if (body.temperature !== undefined) {
     if (body.temperature === null) {
       data.temperature = null;
@@ -83,21 +79,6 @@ export async function PUT(request: Request) {
       );
     } else {
       data.temperature = Math.min(TEMPERATURE_RANGE.max, Math.max(TEMPERATURE_RANGE.min, body.temperature));
-    }
-  }
-
-  if (body.tokenBudget !== undefined) {
-    if (body.tokenBudget === null) {
-      data.tokenBudget = null;
-    } else if (typeof body.tokenBudget !== "number" || !Number.isFinite(body.tokenBudget)) {
-      return NextResponse.json(
-        { error: `tokenBudget must be a number between ${TOKEN_BUDGET_RANGE.min} and ${TOKEN_BUDGET_RANGE.max}` },
-        { status: 400 },
-      );
-    } else {
-      data.tokenBudget = Math.round(
-        Math.min(TOKEN_BUDGET_RANGE.max, Math.max(TOKEN_BUDGET_RANGE.min, body.tokenBudget)),
-      );
     }
   }
 
@@ -128,7 +109,6 @@ export async function PUT(request: Request) {
       id: 1,
       model: DEFAULT_MODEL,
       temperature: data.temperature ?? undefined,
-      tokenBudget: data.tokenBudget ?? undefined,
     },
   });
 
