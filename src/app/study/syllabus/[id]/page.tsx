@@ -4,6 +4,8 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import SyllabusView from "../../SyllabusView";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { sanitizeStartLanguage } from "@/lib/sanitize-language-mode";
+import type { StartLanguage } from "@/lib/prompts";
 
 // Deep-link / re-open route for a saved syllabus. Loads the syllabus from the
 // local API and hands its JSON to the ported SyllabusView (single component
@@ -13,6 +15,7 @@ type SyllabusResponse = {
   topic: string;
   goal: string;
   units: unknown[];
+  language?: string;
 };
 
 export default function SyllabusPage({
@@ -22,6 +25,7 @@ export default function SyllabusPage({
 }) {
   const { id } = use(params);
   const [raw, setRaw] = useState<string | null>(null);
+  const [startLanguage, setStartLanguage] = useState<StartLanguage>("english");
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
@@ -33,6 +37,7 @@ export default function SyllabusPage({
         }
         const data = (await r.json()) as SyllabusResponse;
         setRaw(JSON.stringify({ topic: data.topic, goal: data.goal, units: data.units }));
+        setStartLanguage(sanitizeStartLanguage(data.language));
       })
       .catch(() => setNotFound(true));
   }, [id]);
@@ -56,7 +61,7 @@ export default function SyllabusPage({
             Loading syllabus…
           </p>
         ) : (
-          <SyllabusView raw={raw} syllabusId={id} />
+          <SyllabusView raw={raw} syllabusId={id} startLanguage={startLanguage} />
         )}
       </div>
     </div>

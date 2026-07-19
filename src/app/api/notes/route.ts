@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sanitizeStartLanguage } from "@/lib/sanitize-language-mode";
 
 const DEPTH_PREFERENCES = ["quick", "standard", "deep"];
 
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
     rawText?: string;
     segments?: SegmentIn[];
     depthPreference?: string;
+    language?: string;
   };
 
   if (!body.title || !body.sourceType || !Array.isArray(body.segments) || body.segments.length === 0) {
@@ -72,6 +74,7 @@ export async function POST(request: Request) {
       rawText: body.rawText ?? null,
       segmentsJson: JSON.stringify(cleanSegments),
       depthPreference,
+      language: sanitizeStartLanguage(body.language),
     },
   });
 

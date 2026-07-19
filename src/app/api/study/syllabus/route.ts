@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sanitizeStartLanguage } from "@/lib/sanitize-language-mode";
 
 /**
  * Lists saved syllabi, newest first, in the shape the earlier reference design's ported
@@ -18,6 +19,7 @@ export async function GET() {
     id: row.id,
     topic: row.topic,
     created_at: row.createdAt,
+    language: row.language,
     syllabus_json: {
       topic: row.topic,
       goal: row.goal,
@@ -51,6 +53,7 @@ export async function POST(request: Request) {
     topic?: string;
     goal?: string;
     units?: SyllabusUnit[];
+    language?: string;
   };
 
   if (!body.intakeId || !body.topic || !Array.isArray(body.units) || body.units.length === 0) {
@@ -68,6 +71,7 @@ export async function POST(request: Request) {
       topic: body.topic,
       goal: body.goal ?? "",
       unitsJson: JSON.stringify(body.units),
+      language: sanitizeStartLanguage(body.language),
     },
   });
 

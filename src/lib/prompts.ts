@@ -3,33 +3,65 @@
  * device is a 2015 dual-core CPU with no GPU, so verbose system prompts eat
  * directly into latency and the num_predict budget for the reply itself.
  *
- * Language is injected per call from the local settings row (no per-user
- * accounts, single implicit local user).
+ * Language is chosen per-topic (Study mode intake) or per-note (new-note
+ * screen), not app-wide — captured at the one real moment intent exists,
+ * default "english". A separate Settings-level default (Settings.language)
+ * covers the one-shot AI-explain features (QOTD, CBT review, Past-Questions)
+ * that have no intake step to ask at.
+ *
+ * Two different instructions depending on whether there's real student text
+ * to read: "generated" content (the initial tutor auto-teach, the initial
+ * note-segment explanation) is triggered by a hardcoded English synthetic
+ * instruction the student never typed, so there's nothing to adapt to — it
+ * gets a fixed instruction matching the chosen start language instead.
+ * "followup" content (anything the student actually types in chat) gets an
+ * adaptive instruction instead: continue in whatever language their message
+ * is actually written in, regardless of the start language — a real
+ * follow-up always takes precedence over the initial choice.
+ *
+ * The Hausa wording below is not the first draft — a vaguer version
+ * ("code-switch naturally, the way a student talks") was tested directly
+ * against the real local model across 3 tasks (tutor explain, note-segment
+ * explain, quiz-answer gloss) and produced Nigerian Pidgin English every
+ * single time ("wahala", "I go explain") — zero real Hausa, 0/3 tasks. The
+ * fix wasn't longer wording, it was specificity: naming actual Hausa
+ * function words (kuma, amma, domin, wannan, misali, yadda, idan) and
+ * explicitly stating Pidgin isn't Hausa. That alone flipped it to fluent,
+ * grammatical Hausa on 3/3 tasks, zero Pidgin. Re-verify with the same
+ * methodology if this wording is ever changed — don't assume a
+ * reasonable-sounding instruction actually produces Hausa without testing.
  */
 
-export type Language = "en" | "ha" | "mixed";
+export type StartLanguage = "hausa" | "english";
 
-function languageLine(language: Language): string {
-  switch (language) {
-    case "ha":
-      return "Reply in Hausa. Keep technical/scientific terms (e.g. formula names, English loanwords students already use) in English where a Hausa term would confuse more than it helps.";
-    case "mixed":
-      return "Reply with natural Hausa/English code-switching, the way a Nigerian university student actually talks — technical terms in English, explanation and framing in Hausa where it reads more naturally.";
-    case "en":
-    default:
-      return "Reply in English.";
-  }
+const HAUSA_GENERATED_LINE =
+  "You MUST write your explanation primarily in Hausa. Every sentence should be mostly Hausa words, with only technical/scientific terms (formula names, scientific terms with no common Hausa equivalent) left in English. Do NOT use Nigerian Pidgin English (words like 'wahala', 'I go', 'abeg', 'na so') — Pidgin is not Hausa and is wrong here. Use real Hausa words and grammar: 'kuma' (and), 'amma' (but), 'domin'/'saboda' (because), 'wannan' (this), 'misali' (example), 'yadda' (how), 'idan' (if). Do this regardless of what language any instruction below is written in.";
+
+const FOLLOWUP_LANGUAGE_LINE =
+  "Continue in whatever language the student's most recent message is actually written in — if they write in Hausa, reply in Hausa (keeping technical/scientific terms in English); if English, reply in English; if they naturally mix Hausa and English, mirror that code-switching. Their own words take precedence over anything else in this system prompt about language.";
+
+/** For "generated" content (no real student text to read) — a fixed
+ * instruction matching the chosen start language, or no instruction at all
+ * for English (the model's natural default already). */
+function generatedLanguageLine(start: StartLanguage): string {
+  return start === "hausa" ? HAUSA_GENERATED_LINE : "";
 }
 
-const BASE = "You are Abusites Companion, an offline study companion for Nigerian university students. Be concise and concrete — short paragraphs, no filler, no restating the question.";
+const BASE = "You are Abusites Companion, an offline study companion for Nigerian university students.";
 
-export function subunitTutorSystemPrompt(language: Language, topic: string, subunitTitle: string, keyConcepts: string[]): string {
+export function subunitTutorSystemPrompt(
+  start: StartLanguage,
+  topic: string,
+  subunitTitle: string,
+  keyConcepts: string[],
+  isFollowUp = false,
+): string {
   return [
     BASE,
-    languageLine(language),
+    isFollowUp ? FOLLOWUP_LANGUAGE_LINE : generatedLanguageLine(start),
     `You are tutoring the subunit "${subunitTitle}" within the topic "${topic}".`,
     keyConcepts.length ? `Key concepts to cover: ${keyConcepts.join(", ")}.` : "",
-    "Explain simply first, then add detail only if asked. Use short worked examples over long prose. If the student asks something unrelated to the subunit, answer briefly and steer back.",
+    "Explain simply first, then add detail. Use short worked examples or long prose where appropriate. If the student asks something unrelated to the subunit, answer briefly and steer back.",
   ]
     .filter(Boolean)
     .join("\n");
@@ -48,10 +80,19 @@ export function subunitTutorSystemPrompt(language: Language, topic: string, subu
  * for genuinely thorough output. Deliberately has no concept of a "goal" —
  * the real earlier reference-design prompt only ever took a topic.
  */
-export function syllabusGenerationSystemPrompt(language: Language): string {
+// Deliberately no language line here, even if the syllabus's chosen start
+// language is Hausa — titles/units/subunits stay English by product
+// decision (only the tutoring content
+// itself is Hausa-enforced). This also sidesteps a real, tested failure
+// mode: forcing Hausa into this call's strict-JSON structural output made
+// the model unstable — Hausa needs meaningfully more tokens for the same
+// content than English, and even at the full 1500-token budget the JSON
+// sometimes broke mid-structure or the model wrote English meta-commentary
+// inside the JSON trying to satisfy conflicting constraints. Not a one-line
+// fix; see git history if this needs revisiting.
+export function syllabusGenerationSystemPrompt(): string {
   return [
     BASE,
-    languageLine(language),
     "You are a curriculum designer. Break the given topic into a structured learning path, as strict JSON only — no markdown fences, no prose outside the JSON, no fields beyond what's shown.",
     "Divide the topic into sequential units. Each unit should contain several subunits. Each subunit should introduce only one or two key ideas. Order must progress from foundational concepts to advanced ones — avoid large conceptual jumps. Continue until the topic is fully covered; do not artificially limit the number of units or subunits.",
     "Do not explain the concepts. Only produce the structure.",
@@ -77,14 +118,16 @@ export function syllabusGenerationSystemPrompt(language: Language): string {
  * wrong options are wrong, or a different way to think about it — rather
  * than restating it.
  */
-export function explainQuestionSystemPrompt(language: Language): string {
+export function explainQuestionSystemPrompt(start: StartLanguage): string {
   return [
     BASE,
-    languageLine(language),
+    generatedLanguageLine(start),
     "The student is looking at a multiple-choice question they've already answered and wants a live AI explanation, not just the static answer key.",
     "Explain why the correct option is right, and briefly why the other options are wrong or tempting. If a static explanation is given below, don't just restate it — add a genuinely different angle (a different way to think about it, a common mix-up, a quick example) that helps more than the static text alone.",
     "Keep it tight: a short paragraph, not an essay.",
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 /**
@@ -94,11 +137,16 @@ export function explainQuestionSystemPrompt(language: Language): string {
  * explanation (that's notesSegmentExplanationSystemPrompt, generated later,
  * on demand, per segment). Called "segments" rather than Study mode's
  * "subunits" so the two features' data never get confused in code/schema.
+ *
+ * No language line here, same reasoning as syllabusGenerationSystemPrompt:
+ * titles/previews stay English by product decision, and forcing Hausa into
+ * this strict-JSON structural output risks the same instability (more
+ * tokens needed, JSON breaking under combined constraints) tested and found
+ * there — only the deep explanation and chat prompts are Hausa-enforced.
  */
-export function notesSegmentSplitSystemPrompt(language: Language): string {
+export function notesSegmentSplitSystemPrompt(): string {
   return [
     BASE,
-    languageLine(language),
     "Given raw study material (notes, extracted PDF/image text), split it into conceptual segments — one segment per distinct idea or topic the material actually covers. Do not explain the concepts, only identify and title them; a one-line preview per segment, not the full content.",
     "Return strict JSON only — no markdown fences, no prose outside the JSON.",
     'Shape: {"title":"short title for the whole document","segments":[{"segment_id":"1","title":"...","summary":"one-line preview of what this segment covers"}]}',
@@ -109,10 +157,9 @@ export function notesSegmentSplitSystemPrompt(language: Language): string {
 
 /** Same JSON contract as notesSegmentSplitSystemPrompt, but the source is a
  * photo (textbook page, handwritten notes) instead of pasted/extracted text. */
-export function notesSegmentSplitFromImageSystemPrompt(language: Language): string {
+export function notesSegmentSplitFromImageSystemPrompt(): string {
   return [
     BASE,
-    languageLine(language),
     "The student has shared a photo of study material (textbook page, handwritten notes, slide). Read the text in the image carefully, then split it into conceptual segments — one segment per distinct idea or topic. Do not explain the concepts, only identify and title them.",
     "Return strict JSON only — no markdown fences, no prose outside the JSON.",
     'Shape: {"title":"short title for the whole document","segments":[{"segment_id":"1","title":"...","summary":"one-line preview of what this segment covers"}]}',
@@ -154,7 +201,7 @@ const DEPTH_INSTRUCTION: Record<NoteExplanationDepth, string> = {
  * part relevant to this segment; ignore the rest.
  */
 export function notesSegmentExplanationSystemPrompt(
-  language: Language,
+  start: StartLanguage,
   documentTitle: string,
   segmentTitle: string,
   segmentSummary: string,
@@ -163,7 +210,7 @@ export function notesSegmentExplanationSystemPrompt(
 ): string {
   return [
     BASE,
-    languageLine(language),
+    generatedLanguageLine(start),
     `You are explaining one segment of a document titled "${documentTitle}".`,
     `Segment: "${segmentTitle}" — ${segmentSummary}`,
     DEPTH_INSTRUCTION[depth],
@@ -183,14 +230,31 @@ export function notesSegmentExplanationSystemPrompt(
  * knows how to render/score (see NoteDetailPage's quiz block), preserved
  * verbatim from the old notesSummarySystemPrompt's "quiz" field.
  */
-export function notesQuizSystemPrompt(language: Language): string {
+const QUIZ_QUESTION_COUNT_MIN = 1;
+const QUIZ_QUESTION_COUNT_MAX = 15;
+
+// NOTE: unlike syllabusGenerationSystemPrompt/notesSegmentSplitSystemPrompt,
+// this one DOES apply generatedLanguageLine in Hausa mode, even though it's
+// also a strict-JSON "json"-route call — quiz questions are real content a
+// student reads, not structural titles, so English-only felt wrong here.
+// This combination (Hausa + format:"json") was NOT specifically tested the
+// way syllabus generation was; if quiz generation shows the same
+// JSON-breaking instability found there, this needs the same treatment
+// (drop the language line, or raise the token budget further).
+export function notesQuizSystemPrompt(start: StartLanguage, questionCount: number = 5): string {
+  const count = Math.min(
+    QUIZ_QUESTION_COUNT_MAX,
+    Math.max(QUIZ_QUESTION_COUNT_MIN, Math.round(questionCount)),
+  );
   return [
     BASE,
-    languageLine(language),
+    generatedLanguageLine(start),
     "Given raw study material (notes, extracted PDF/image text), produce strict JSON only: " +
       '{"quiz":[{"question":"...","options":["A","B","C","D"],"correct_index":0}]}',
-    "3-5 quiz questions covering the material's distinct ideas, not just one part of it.",
-  ].join("\n");
+    `Produce up to ${count} quiz question${count === 1 ? "" : "s"}, covering the material's distinct ideas as evenly as possible — don't repeatedly test the same one idea just to hit the count.`,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 /**
@@ -203,7 +267,6 @@ export function notesQuizSystemPrompt(language: Language): string {
  * SegmentsView.tsx.
  */
 export function notesChatSystemPrompt(
-  language: Language,
   title: string,
   summary: string,
   keyConcepts: string[],
@@ -211,7 +274,9 @@ export function notesChatSystemPrompt(
 ): string {
   return [
     BASE,
-    languageLine(language),
+    // Always genuine student-typed text here (this function only exists
+    // for real follow-up chat) — always adaptive, no start-language param.
+    FOLLOWUP_LANGUAGE_LINE,
     `You are answering follow-up questions about a saved note titled "${title}".`,
     `Note summary: ${summary}`,
     keyConcepts.length ? `Key concepts: ${keyConcepts.join(", ")}.` : "",
@@ -233,7 +298,6 @@ export function notesChatSystemPrompt(
  * source excerpt, same pattern as notesSegmentExplanationSystemPrompt.
  */
 export function notesSegmentChatSystemPrompt(
-  language: Language,
   documentTitle: string,
   segmentTitle: string,
   segmentSummary: string,
@@ -242,14 +306,16 @@ export function notesSegmentChatSystemPrompt(
 ): string {
   return [
     BASE,
-    languageLine(language),
+    // Always genuine student-typed text here too — always adaptive, no
+    // start-language param.
+    FOLLOWUP_LANGUAGE_LINE,
     `You are answering follow-up questions about one segment of a document titled "${documentTitle}".`,
     `Segment: "${segmentTitle}" — ${segmentSummary}`,
     explanation ? `You already explained this segment as follows:\n<<<\n${explanation}\n>>>` : "",
     sourceExcerpt
       ? `The student's own source material for this segment (ground truth, don't invent details it doesn't support):\n<<<\n${sourceExcerpt}\n>>>`
       : "",
-    "Answer the student's follow-up using the above as context. Explain simply, short worked examples over long prose. Stay scoped to this segment unless the student clearly asks about something else.",
+    "Answer the student's follow-up using the above as context. Explain using worked examples or long prose where necessary. Stay scoped to this segment unless the student clearly asks about something else.",
   ]
     .filter(Boolean)
     .join("\n");
@@ -266,14 +332,16 @@ export function notesSegmentChatSystemPrompt(
  * Failure of this call must never surface to the user; see the try/catch
  * around its call site in SyllabusView.tsx.
  */
-export function prereqDetectionSystemPrompt(language: Language): string {
+export function prereqDetectionSystemPrompt(start: StartLanguage): string {
   return [
     BASE,
-    languageLine(language),
+    generatedLanguageLine(start),
     "You are a prerequisite detector. Read the tutor response below and identify any concepts the student might not know yet that are likely prerequisites for understanding it.",
     'Return ONLY strict JSON in this exact shape, no markdown fences, no prose outside the JSON: {"missing_prerequisites":[{"concept":"...","prompt":"..."}]}',
     "Each \"prompt\" must be a short, simple question that would help the learner fill that specific gap. If nothing is missing, return an empty array. Keep the list short — at most 3 items.",
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 /**
@@ -286,14 +354,16 @@ export function prereqDetectionSystemPrompt(language: Language): string {
  * why the tempting wrong options are wrong too, not just the two that
  * mattered for this particular question.
  */
-export function cbtQuestionExplanationSystemPrompt(language: Language): string {
+export function cbtQuestionExplanationSystemPrompt(start: StartLanguage): string {
   return [
     BASE,
-    languageLine(language),
+    generatedLanguageLine(start),
     "You are explaining one question from a student's completed CBT (computer-based test) session. All the options are given, along with the student's answer (or 'not answered') and the correct answer.",
     "If the student's answer matches the correct one: briefly justify why that answer is correct, reinforcing the reasoning rather than just restating the fact.",
     "If the student's answer is wrong or missing: gently and encouragingly teach them, explain why the correct answer is right, and briefly why their own choice (if they made one) was a tempting but incorrect option. No judgment, no scolding, just a fast diagnosis and a clear correction.",
     "Consider all the options given, not only the chosen and correct ones, when explaining what makes the right one right.",
     "Keep it tight: a short paragraph, not an essay.",
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }

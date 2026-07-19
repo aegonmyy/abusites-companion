@@ -18,10 +18,11 @@ import MicButton from "@/components/MicButton";
 import SendGlyph from "@/components/SendGlyph";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { BackIcon, BookmarksIcon, TrashIcon } from "@/components/icons/NavIcons";
-import { notesChatSystemPrompt, notesQuizSystemPrompt, type Language } from "@/lib/prompts";
+import { notesChatSystemPrompt, notesQuizSystemPrompt } from "@/lib/prompts";
 import { parseModelJson } from "@/lib/parse-model-json";
 import SegmentsView, { type Segment } from "./SegmentsView";
 import { isDepthPreference } from "@/lib/notes-depth";
+import { sanitizeStartLanguage } from "@/lib/sanitize-language-mode";
 
 const MAX_SOURCE_EXCERPT_CHARS = 6000;
 
@@ -46,6 +47,10 @@ type Note = {
   depthPreference: string;
   quiz: QuizQuestion[];
   createdAt: string;
+  // "hausa" | "english", chosen at upload time — see prompts.ts's
+  // StartLanguage. Legacy (pre-migration) notes have no stored value, so
+  // this is sanitized at every read site rather than trusted raw.
+  language?: string;
 };
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
@@ -67,7 +72,6 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const { id } = use(params);
   const router = useRouter();
   const [note, setNote] = useState<Note | null>(null);
-  const [language, setLanguage] = useState<Language>("en");
   const [modelSource, setModelSource] = useState<"local" | "cloud">("local");
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -80,6 +84,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [quizGenerating, setQuizGenerating] = useState(false);
   const [quizError, setQuizError] = useState<string | null>(null);
+  const [quizCount, setQuizCount] = useState(5);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -89,7 +94,6 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     fetch("/api/settings")
       .then((r) => r.json())
       .then((d) => {
-        setLanguage((d.language as Language) ?? "en");
         setModelSource(d.modelSource === "cloud" ? "cloud" : "local");
       });
   }, [id]);
@@ -157,8 +161,12 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           routeTag: "json",
-          system: notesQuizSystemPrompt(language),
-          numPredictOverride: 700,
+          system: notesQuizSystemPrompt(sanitizeStartLanguage(note?.language), quizCount),
+          // Scales with question count (~150 tokens/question is a
+          // comfortable ceiling for a concise question + 4 options + index,
+          // plus a fixed overhead for JSON structure) — verified against the
+          // real local model at the max count (15) with no truncation.
+          numPredictOverride: Math.min(2500, 150 * quizCount + 200),
           messages: [{ role: "user", content: source }],
         }),
       });
@@ -241,7 +249,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     setStreaming(true);
 
     const sourceExcerpt = (note.rawText ?? "").trim().slice(0, MAX_SOURCE_EXCERPT_CHARS);
-    const system = notesChatSystemPrompt(language, note.title, noteContextSummary(note), note.keyConcepts, sourceExcerpt);
+    const system = notesChatSystemPrompt(note.title, noteContextSummary(note), note.keyConcepts, sourceExcerpt);
 
     try {
       const res = await fetch("/api/llm", {
@@ -264,7 +272,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     setStreaming(true);
 
     const sourceExcerpt = (note.rawText ?? "").trim().slice(0, MAX_SOURCE_EXCERPT_CHARS);
-    const system = notesChatSystemPrompt(language, note.title, noteContextSummary(note), note.keyConcepts, sourceExcerpt);
+    const system = notesChatSystemPrompt(note.title, noteContextSummary(note), note.keyConcepts, sourceExcerpt);
 
     try {
       const res = await fetch("/api/llm", {
@@ -363,7 +371,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                 documentTitle={note.title}
                 segments={note.segments}
                 depthPreference={isDepthPreference(note.depthPreference) ? note.depthPreference : "standard"}
-                language={language}
+                startLanguage={sanitizeStartLanguage(note.language)}
                 initialExplanations={note.segmentExplanations}
                 sourceText={note.rawText}
                 modelSource={modelSource}
@@ -379,16 +387,33 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                     : "Not generated yet — build one whenever you're ready to test yourself."}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={generateQuiz}
-                disabled={quizGenerating}
-                data-testid="generate-quiz-button"
-                className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-900 disabled:opacity-60"
-              >
-                {quizGenerating && <LoadingSpinner size={14} className="text-slate-900" label="Generating" />}
-                {quizGenerating ? "Generating…" : note.quiz.length > 0 ? "Regenerate quiz" : "Generate quiz"}
-              </button>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-1.5 text-xs text-white/60" title="The model may return fewer than this on higher counts.">
+                  Up to
+                  <input
+                    type="number"
+                    min={1}
+                    max={15}
+                    value={quizCount}
+                    onChange={(e) =>
+                      setQuizCount(Math.min(15, Math.max(1, Number(e.target.value) || 1)))
+                    }
+                    disabled={quizGenerating}
+                    data-testid="quiz-count-input"
+                    className="w-14 rounded-full border border-white/20 bg-white/10 px-2 py-1 text-center text-xs text-white focus:border-white/40 focus:outline-none disabled:opacity-60"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={generateQuiz}
+                  disabled={quizGenerating}
+                  data-testid="generate-quiz-button"
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-900 disabled:opacity-60"
+                >
+                  {quizGenerating && <LoadingSpinner size={14} className="text-slate-900" label="Generating" />}
+                  {quizGenerating ? "Generating…" : note.quiz.length > 0 ? "Regenerate quiz" : "Generate quiz"}
+                </button>
+              </div>
             </div>
             {quizError && <p className="text-sm text-rose-300">{quizError}</p>}
 

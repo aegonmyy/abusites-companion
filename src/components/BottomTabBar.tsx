@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { t, useLanguage } from "@/lib/i18n";
 import { HomeIcon, StudyIcon, NotesIcon, PastQsIcon } from "@/components/icons/NavIcons";
 
 const TABS = [
-  { href: "/", key: "nav_home" as const, Icon: HomeIcon, testid: "tab-home" },
-  { href: "/study", key: "nav_study" as const, Icon: StudyIcon, testid: "tab-study" },
-  { href: "/notes", key: "nav_notes" as const, Icon: NotesIcon, testid: "tab-notes" },
-  { href: "/past-questions", key: "nav_past_qs" as const, Icon: PastQsIcon, testid: "tab-past-questions" },
+  { href: "/", label: "Home", Icon: HomeIcon, testid: "tab-home" },
+  { href: "/study", label: "Study", Icon: StudyIcon, testid: "tab-study" },
+  { href: "/notes", label: "Notes", Icon: NotesIcon, testid: "tab-notes" },
+  { href: "/past-questions", label: "Past Qs", Icon: PastQsIcon, testid: "tab-past-questions" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -30,14 +29,13 @@ function isActive(pathname: string, href: string): boolean {
  */
 export default function BottomTabBar() {
   const pathname = usePathname();
-  const language = useLanguage();
 
   return (
     <nav
       data-testid="mobile-tabbar"
       className="fixed inset-x-4 bottom-4 z-50 flex items-stretch justify-between gap-1 rounded-3xl border border-white/10 bg-white/10 px-2 py-2 shadow-xl backdrop-blur sm:hidden"
     >
-      {TABS.map(({ href, key, Icon, testid }) => {
+      {TABS.map(({ href, label, Icon, testid }) => {
         const active = isActive(pathname, href);
         return (
           <Link
@@ -52,7 +50,7 @@ export default function BottomTabBar() {
             }
           >
             <Icon />
-            <span>{t(key, language)}</span>
+            <span>{label}</span>
           </Link>
         );
       })}

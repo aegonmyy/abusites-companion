@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { t, useLanguage } from "@/lib/i18n";
 import {
   HomeIcon,
   StudyIcon,
@@ -13,12 +12,12 @@ import {
 } from "@/components/icons/NavIcons";
 
 const LINKS = [
-  { href: "/", key: "nav_home" as const, Icon: HomeIcon, testid: "sidebar-home" },
-  { href: "/study", key: "nav_study" as const, Icon: StudyIcon, testid: "sidebar-study" },
-  { href: "/notes", key: "nav_notes" as const, Icon: NotesIcon, testid: "sidebar-notes" },
-  { href: "/past-questions", key: "nav_past_qs" as const, Icon: PastQsIcon, testid: "sidebar-past-questions" },
-  { href: "/bookmarks", key: "nav_bookmarks" as const, Icon: BookmarksIcon, testid: "sidebar-bookmarks" },
-  { href: "/settings", key: "nav_settings" as const, Icon: SettingsIcon, testid: "sidebar-settings" },
+  { href: "/", label: "Home", Icon: HomeIcon, testid: "sidebar-home" },
+  { href: "/study", label: "Study", Icon: StudyIcon, testid: "sidebar-study" },
+  { href: "/notes", label: "Notes", Icon: NotesIcon, testid: "sidebar-notes" },
+  { href: "/past-questions", label: "Past Qs", Icon: PastQsIcon, testid: "sidebar-past-questions" },
+  { href: "/bookmarks", label: "Bookmarks", Icon: BookmarksIcon, testid: "sidebar-bookmarks" },
+  { href: "/settings", label: "Settings", Icon: SettingsIcon, testid: "sidebar-settings" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -56,7 +55,6 @@ function isActive(pathname: string, href: string): boolean {
  */
 export default function Sidebar() {
   const pathname = usePathname();
-  const language = useLanguage();
 
   return (
     <nav
@@ -71,7 +69,7 @@ export default function Sidebar() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.svg" alt="Abusites Companion" className="h-9 w-auto" />
       </Link>
-      {LINKS.map(({ href, key, Icon, testid }) => {
+      {LINKS.map(({ href, label, Icon, testid }) => {
         const active = isActive(pathname, href);
         return (
           <Link
@@ -86,7 +84,7 @@ export default function Sidebar() {
             }
           >
             <Icon />
-            <span>{t(key, language)}</span>
+            <span>{label}</span>
           </Link>
         );
       })}

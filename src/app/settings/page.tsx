@@ -3,23 +3,19 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import type { StartLanguage } from "@/lib/prompts";
 
-// Settings has no equivalent in the earlier reference design (the hosted app kept
-// language in the account/profile). The target's local language setting is
-// kept as-is and dressed in the same glass-card / pill vocabulary used
-// throughout, so it reads as part of the same design system.
+// Study mode and Notes ask for a language choice per-topic/per-note at
+// intake, not here. This page's language setting only covers the one-shot
+// AI-explain features that have no intake step to ask at — QOTD, CBT
+// review, Past-Questions "Explain with AI" — see prompts.ts's StartLanguage
+// doc comment.
 
-type Language = "en" | "ha" | "mixed";
 type ModelSource = "local" | "cloud";
 
-const LANGUAGE_OPTIONS: { value: Language; label: string; hint: string }[] = [
-  { value: "en", label: "English", hint: "All replies in English." },
-  { value: "ha", label: "Hausa", hint: "Replies in Hausa; technical terms stay in English." },
-  {
-    value: "mixed",
-    label: "Hausa + English (natural mix)",
-    hint: "Code-switches the way students actually talk.",
-  },
+const START_LANGUAGE_OPTIONS: { value: StartLanguage; label: string; hint: string }[] = [
+  { value: "english", label: "English", hint: "Explanations in English." },
+  { value: "hausa", label: "Hausa", hint: "Explanations in Hausa, technical terms stay in English." },
 ];
 
 const MODEL_SOURCE_OPTIONS: { value: ModelSource; label: string; hint: string }[] = [
@@ -46,11 +42,16 @@ const TOKEN_BUDGET_MIN = 80;
 const TOKEN_BUDGET_MAX = 500;
 
 export default function SettingsPage() {
-  const [language, setLanguage] = useState<Language>("en");
+  const [language, setLanguage] = useState<StartLanguage>("english");
   const [temperature, setTemperature] = useState(TEMPERATURE_DEFAULT);
   const [tokenBudget, setTokenBudget] = useState(TOKEN_BUDGET_DEFAULT);
   const [modelSource, setModelSource] = useState<ModelSource>("local");
   const [cloudApiKey, setCloudApiKey] = useState("");
+  // GET /api/settings now returns a masked cloudApiKey (see route.ts) —
+  // this tracks whether the user has actually typed into the field since
+  // load, so an untouched masked value is never sent back to PUT as if it
+  // were the real key.
+  const [cloudApiKeyTouched, setCloudApiKeyTouched] = useState(false);
   const [cloudModel, setCloudModel] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -61,7 +62,7 @@ export default function SettingsPage() {
     fetch("/api/settings")
       .then((r) => r.json())
       .then((d) => {
-        setLanguage((d.language as Language) ?? "en");
+        setLanguage(d.language === "hausa" ? "hausa" : "english");
         setTemperature(typeof d.temperature === "number" ? d.temperature : TEMPERATURE_DEFAULT);
         setTokenBudget(typeof d.tokenBudget === "number" ? d.tokenBudget : TOKEN_BUDGET_DEFAULT);
         setModelSource((d.modelSource as ModelSource) ?? "local");
@@ -73,7 +74,7 @@ export default function SettingsPage() {
 
   async function save(
     next: Partial<{
-      language: Language;
+      language: StartLanguage;
       temperature: number;
       tokenBudget: number;
       modelSource: ModelSource;
@@ -137,6 +138,40 @@ export default function SettingsPage() {
           <div className="mt-8 flex flex-col gap-6">
             <fieldset className="flex flex-col gap-3">
               <legend className="mb-1 text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
+                AI-explain default language
+              </legend>
+              <p className="-mt-1 mb-1 text-xs text-white/50">
+                For Question of the Day, CBT review, and Past-Questions &quot;Explain with AI&quot; — one-shot explanations with no place to ask per-item. Study mode and Notes ask this per topic/note instead.
+              </p>
+              {START_LANGUAGE_OPTIONS.map((opt) => {
+                const active = language === opt.value;
+                return (
+                  <label
+                    key={opt.value}
+                    className={`card-deep flex cursor-pointer items-start gap-3 rounded-2xl p-4 transition ${
+                      active ? "border-emerald-300/50" : "hover:border-white/30"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="language"
+                      value={opt.value}
+                      checked={active}
+                      onChange={() => save({ language: opt.value })}
+                      className="mt-1 h-4 w-4 accent-emerald-400"
+                      data-testid={`ai-explain-language-${opt.value}`}
+                    />
+                    <span>
+                      <span className="block font-semibold text-white">{opt.label}</span>
+                      <span className="block text-sm text-white/60">{opt.hint}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </fieldset>
+
+            <fieldset className="flex flex-col gap-3">
+              <legend className="mb-1 text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
                 Model source
               </legend>
               {MODEL_SOURCE_OPTIONS.map((opt) => {
@@ -173,7 +208,10 @@ export default function SettingsPage() {
                       <input
                         type={showKey ? "text" : "password"}
                         value={cloudApiKey}
-                        onChange={(e) => setCloudApiKey(e.target.value)}
+                        onChange={(e) => {
+                          setCloudApiKey(e.target.value);
+                          setCloudApiKeyTouched(true);
+                        }}
                         placeholder="AIza..."
                         data-testid="cloud-api-key-input"
                         className="min-w-0 flex-1 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
@@ -220,7 +258,12 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => save({ cloudApiKey: cloudApiKey || null, cloudModel: cloudModel || null })}
+                      onClick={() =>
+                        save({
+                          ...(cloudApiKeyTouched ? { cloudApiKey: cloudApiKey || null } : {}),
+                          cloudModel: cloudModel || null,
+                        })
+                      }
                       disabled={saveStatus === "saving"}
                       data-testid="save-cloud-settings-button"
                       className="w-fit rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-900 disabled:opacity-60"
@@ -240,37 +283,6 @@ export default function SettingsPage() {
                   </div>
                 </div>
               )}
-            </fieldset>
-
-            <fieldset className="flex flex-col gap-3">
-              <legend className="mb-1 text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
-                Language
-              </legend>
-              {LANGUAGE_OPTIONS.map((opt) => {
-                const active = language === opt.value;
-                return (
-                  <label
-                    key={opt.value}
-                    className={`card-deep flex cursor-pointer items-start gap-3 rounded-2xl p-4 transition ${
-                      active ? "border-emerald-300/50" : "hover:border-white/30"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="language"
-                      value={opt.value}
-                      checked={active}
-                      onChange={() => save({ language: opt.value })}
-                      className="mt-1 h-4 w-4 accent-emerald-400"
-                      data-testid={`language-${opt.value}`}
-                    />
-                    <span>
-                      <span className="block font-semibold text-white">{opt.label}</span>
-                      <span className="block text-sm text-white/60">{opt.hint}</span>
-                    </span>
-                  </label>
-                );
-              })}
             </fieldset>
 
             <fieldset className="card-deep card-deep-glow flex flex-col gap-5 rounded-2xl p-4">

@@ -14,6 +14,7 @@ import { parseModelJson } from "@/lib/parse-model-json";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import FullPageLoader from "@/components/FullPageLoader";
 import type { DepthPreference } from "@/lib/notes-depth";
+import type { StartLanguage } from "@/lib/prompts";
 
 type ParsedSegments = {
   title?: string;
@@ -58,6 +59,11 @@ const DEPTH_OPTIONS: { value: DepthPreference; label: string; hint: string; test
   { value: "deep", label: "Deep", hint: "Most thorough, slowest per segment", testid: "depth-deep" },
 ];
 
+const START_LANGUAGE_OPTIONS: { value: StartLanguage; label: string }[] = [
+  { value: "english", label: "English" },
+  { value: "hausa", label: "Hausa" },
+];
+
 export default function NewNotePage() {
   const router = useRouter();
   const [mode, setMode] = useState<"text" | "image" | "pdf">("text");
@@ -67,6 +73,9 @@ export default function NewNotePage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [depth, setDepth] = useState<DepthPreference>("standard");
+  // Chosen at upload time, default English — see prompts.ts's StartLanguage
+  // doc comment for why this lives here rather than as a global setting.
+  const [startLanguage, setStartLanguage] = useState<StartLanguage>("english");
   const [status, setStatus] = useState<"idle" | "extracting" | "generating" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -97,10 +106,6 @@ export default function NewNotePage() {
     setError(null);
 
     try {
-      const settingsRes = await fetch("/api/settings");
-      const settings = await settingsRes.json();
-      const language = settings.language ?? "en";
-
       const { notesSegmentSplitSystemPrompt, notesSegmentSplitFromImageSystemPrompt } = await import(
         "@/lib/prompts"
       );
@@ -115,7 +120,7 @@ export default function NewNotePage() {
         sourceType = "text";
         llmBody = {
           routeTag: "json",
-          system: notesSegmentSplitSystemPrompt(language),
+          system: notesSegmentSplitSystemPrompt(),
           // Segment structure is a small, cheap call — cap it well below the
           // full syllabus's 1500-token budget (a table of contents doesn't
           // need that much room).
@@ -130,7 +135,7 @@ export default function NewNotePage() {
         setStatus("generating");
         llmBody = {
           routeTag: "json",
-          system: notesSegmentSplitSystemPrompt(language),
+          system: notesSegmentSplitSystemPrompt(),
           numPredictOverride: 700,
           messages: [{ role: "user", content: extractedPdfText }],
         };
@@ -141,7 +146,7 @@ export default function NewNotePage() {
         const b64 = await fileToBase64(imageFile);
         llmBody = {
           routeTag: "json",
-          system: notesSegmentSplitFromImageSystemPrompt(language),
+          system: notesSegmentSplitFromImageSystemPrompt(),
           numPredictOverride: 700,
           messages: [
             {
@@ -208,6 +213,7 @@ export default function NewNotePage() {
           rawText: mode === "text" ? rawText : mode === "pdf" ? extractedPdfText : null,
           segments: parsed.segments,
           depthPreference: depth,
+          language: startLanguage,
         }),
       });
       if (!noteRes.ok) {
@@ -388,6 +394,32 @@ export default function NewNotePage() {
                     Applies when you open a segment later. You can&apos;t change it for
                     this note afterward.
                   </p>
+                </div>
+
+                <div className="flex flex-col gap-1.5 text-sm font-semibold text-white/90">
+                  Explanation language
+                  <p className="text-xs font-normal text-white/40">
+                    Follow-up questions always adapt to whatever language you actually type, regardless of this choice.
+                  </p>
+                  <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Explanation language">
+                    {START_LANGUAGE_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={startLanguage === opt.value}
+                        data-testid={`start-language-${opt.value}`}
+                        onClick={() => setStartLanguage(opt.value)}
+                        className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${
+                          startLanguage === opt.value
+                            ? "border-emerald-300/50 bg-emerald-500/15 text-emerald-200"
+                            : "border-white/20 text-white/60 hover:border-white/40 hover:text-white/80"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {error && <p className="text-sm text-rose-300">{error}</p>}

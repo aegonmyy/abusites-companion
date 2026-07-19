@@ -20,7 +20,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
-import { subunitTutorSystemPrompt, prereqDetectionSystemPrompt, type Language } from "@/lib/prompts";
+import { subunitTutorSystemPrompt, prereqDetectionSystemPrompt, type StartLanguage } from "@/lib/prompts";
 import { parseModelJson } from "@/lib/parse-model-json";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
@@ -92,13 +92,15 @@ type SyllabusViewProps = {
   raw: string;
   syllabusId?: string;
   onExit?: () => void;
+  /** Chosen at intake time (StudyIntakeForm), passed down from the loaded
+   * StudySyllabus record — see prompts.ts's StartLanguage. */
+  startLanguage: StartLanguage;
 };
 
-export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewProps) {
+export default function SyllabusView({ raw, syllabusId, onExit, startLanguage }: SyllabusViewProps) {
   const syllabus = useMemo(() => parseSyllabus(raw), [raw]);
   const [completed, setCompleted] = useState<Record<string, boolean>>({});
   const [chatOpen, setChatOpen] = useState(false);
-  const [language, setLanguage] = useState<Language>("en");
   const [activeSubunit, setActiveSubunit] = useState<{
     unitTitle: string;
     subunitTitle: string;
@@ -125,13 +127,6 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
     if (!container) return;
     container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
   };
-
-  useEffect(() => {
-    fetch("/api/settings")
-      .then((r) => r.json())
-      .then((d) => setLanguage((d.language as Language) ?? "en"))
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     messagesSnapshot.current = messages;
@@ -211,12 +206,18 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
     subunitTitle: string,
     keyConcepts: string[],
     history: { role: "user" | "assistant"; content: string }[],
+    // true only for a real message the student typed (handleSend) — false
+    // for the synthetic auto-teach trigger (handleStart), which has no real
+    // text to adapt to. See prompts.ts's generatedLanguageLine/
+    // FOLLOWUP_LANGUAGE_LINE split for why this distinction matters.
+    isFollowUp = false,
   ) => {
     const system = subunitTutorSystemPrompt(
-      language,
+      startLanguage,
       syllabus?.topic ?? "",
       subunitTitle,
       keyConcepts,
+      isFollowUp,
     );
     return fetch("/api/llm", {
       method: "POST",
@@ -236,7 +237,7 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
   const detectMissingPrereqs = async (responseText: string) => {
     if (!responseText.trim()) return;
     try {
-      const system = prereqDetectionSystemPrompt(language);
+      const system = prereqDetectionSystemPrompt(startLanguage);
       const res = await fetch("/api/llm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -379,6 +380,7 @@ export default function SyllabusView({ raw, syllabusId, onExit }: SyllabusViewPr
       activeSubunit.subunitTitle,
       activeSubunit.keyConcepts,
       modelHistory,
+      true,
     );
 
     const { assembled } = await streamResponse(response, (text) => {

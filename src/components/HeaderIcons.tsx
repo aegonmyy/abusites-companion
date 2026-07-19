@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { t, useLanguage } from "@/lib/i18n";
 import { BookmarksIcon, SettingsIcon } from "@/components/icons/NavIcons";
 
 const LINKS = [
-  { href: "/bookmarks", key: "nav_bookmarks" as const, Icon: BookmarksIcon, testid: "header-icon-bookmarks" },
-  { href: "/settings", key: "nav_settings" as const, Icon: SettingsIcon, testid: "header-icon-settings" },
+  { href: "/bookmarks", label: "Bookmarks", Icon: BookmarksIcon, testid: "header-icon-bookmarks" },
+  { href: "/settings", label: "Settings", Icon: SettingsIcon, testid: "header-icon-settings" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -26,21 +25,20 @@ function isActive(pathname: string, href: string): boolean {
  */
 export default function HeaderIcons() {
   const pathname = usePathname();
-  const language = useLanguage();
 
   if (pathname !== "/") return null;
 
   return (
     <div data-testid="header-icons" className="fixed top-3 right-3 z-50 flex items-center gap-2 sm:hidden">
-      {LINKS.map(({ href, key, Icon, testid }) => {
+      {LINKS.map(({ href, label, Icon, testid }) => {
         const active = isActive(pathname, href);
         return (
           <Link
             key={href}
             href={href}
             aria-current={active ? "page" : undefined}
-            aria-label={t(key, language)}
-            title={t(key, language)}
+            aria-label={label}
+            title={label}
             data-testid={testid}
             data-active={active ? "true" : undefined}
             className={

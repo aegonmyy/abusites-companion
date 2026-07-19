@@ -17,7 +17,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import MicButton from "@/components/MicButton";
 import SendGlyph from "@/components/SendGlyph";
 import MathText from "@/components/MathText";
-import { notesSegmentExplanationSystemPrompt, notesSegmentChatSystemPrompt, type Language } from "@/lib/prompts";
+import { notesSegmentExplanationSystemPrompt, notesSegmentChatSystemPrompt, type StartLanguage } from "@/lib/prompts";
 import { DEPTH_NUM_PREDICT, type DepthPreference } from "@/lib/notes-depth";
 
 export type Segment = { segment_id: string; title: string; summary: string };
@@ -29,7 +29,9 @@ type SegmentsViewProps = {
   documentTitle: string;
   segments: Segment[];
   depthPreference: DepthPreference;
-  language: Language;
+  /** Chosen at upload time (new-note screen), passed down from the loaded
+   * Note record — see prompts.ts's StartLanguage. */
+  startLanguage: StartLanguage;
   initialExplanations: Record<string, string>;
   /** The note's original source text (paste/PDF-extracted). Passed to the
    * explanation prompt so it's grounded in what the student actually
@@ -49,12 +51,18 @@ type SegmentsViewProps = {
 // long document anyway (the model is told to use only the relevant part).
 const MAX_SOURCE_EXCERPT_CHARS = 6000;
 
+const DEPTH_CHOICES: { value: DepthPreference; label: string }[] = [
+  { value: "quick", label: "Quick" },
+  { value: "standard", label: "Standard" },
+  { value: "deep", label: "Deep" },
+];
+
 export default function SegmentsView({
   noteId,
   documentTitle,
   segments,
   depthPreference,
-  language,
+  startLanguage,
   initialExplanations,
   sourceText,
   modelSource,
@@ -63,6 +71,11 @@ export default function SegmentsView({
   const [explanations, setExplanations] = useState<Record<string, string>>(initialExplanations);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [errorId, setErrorId] = useState<string | null>(null);
+  // Per-segment depth choice — defaults to the note's overall depthPreference
+  // but can diverge per segment once a student re-explains one at a
+  // different depth. Depth is just prompt wording + a token cap, nothing
+  // structural depends on it being fixed at note-creation time.
+  const [segmentDepth, setSegmentDepth] = useState<Record<string, DepthPreference>>({});
 
   // Per-segment ("tab-specific") follow-up chat — each segment gets its own
   // conversation, scoped to that segment's own explanation + source excerpt,
@@ -71,25 +84,27 @@ export default function SegmentsView({
   const [chatInputs, setChatInputs] = useState<Record<string, string>>({});
   const [chatStreamingId, setChatStreamingId] = useState<string | null>(null);
 
-  async function openSegment(segment: Segment) {
-    setOpenId(segment.segment_id);
+  function depthFor(segmentId: string): DepthPreference {
+    return segmentDepth[segmentId] ?? depthPreference;
+  }
+
+  // Always generates (no cache check) — callers decide whether that's
+  // appropriate. openSegment only calls this the first time a segment is
+  // opened; reExplainAtDepth calls it explicitly to replace whatever's
+  // cached, at a newly chosen depth.
+  async function generateExplanation(segment: Segment, depth: DepthPreference) {
     setErrorId(null);
-
-    // Already generated (this session or a prior one) — cached, instant,
-    // no model call at all.
-    if (explanations[segment.segment_id]) return;
-
     setLoadingId(segment.segment_id);
     setExplanations((prev) => ({ ...prev, [segment.segment_id]: "" }));
 
     try {
       const sourceExcerpt = (sourceText ?? "").trim().slice(0, MAX_SOURCE_EXCERPT_CHARS);
       const system = notesSegmentExplanationSystemPrompt(
-        language,
+        startLanguage,
         documentTitle,
         segment.title,
         segment.summary,
-        depthPreference,
+        depth,
         sourceExcerpt,
       );
       const res = await fetch("/api/llm", {
@@ -98,7 +113,7 @@ export default function SegmentsView({
         body: JSON.stringify({
           routeTag: "lesson",
           system,
-          numPredictOverride: DEPTH_NUM_PREDICT[depthPreference],
+          numPredictOverride: DEPTH_NUM_PREDICT[depth],
           messages: [
             {
               role: "user",
@@ -129,8 +144,9 @@ export default function SegmentsView({
         throw new Error("Local model unavailable — is Ollama running?");
       }
 
-      // Persist once generated — reopening this segment loads from this
-      // cache without ever calling the model again.
+      // Persist once generated — one row per (note, segment), so
+      // regenerating at a new depth replaces whatever was cached before,
+      // both here and on reload.
       fetch(`/api/notes/${noteId}/segment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -147,10 +163,26 @@ export default function SegmentsView({
     }
   }
 
+  async function openSegment(segment: Segment) {
+    setOpenId(segment.segment_id);
+    setErrorId(null);
+
+    // Already generated (this session or a prior one) — cached, instant,
+    // no model call at all.
+    if (explanations[segment.segment_id]) return;
+
+    await generateExplanation(segment, depthFor(segment.segment_id));
+  }
+
+  async function reExplainAtDepth(segment: Segment, depth: DepthPreference) {
+    if (loadingId === segment.segment_id) return;
+    setSegmentDepth((prev) => ({ ...prev, [segment.segment_id]: depth }));
+    await generateExplanation(segment, depth);
+  }
+
   function chatSystemFor(segment: Segment): string {
     const sourceExcerpt = (sourceText ?? "").trim().slice(0, MAX_SOURCE_EXCERPT_CHARS);
     return notesSegmentChatSystemPrompt(
-      language,
       documentTitle,
       segment.title,
       segment.summary,
@@ -243,7 +275,7 @@ export default function SegmentsView({
             <h2 className="mt-2 text-xl font-semibold">{documentTitle}</h2>
           </div>
           <div className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/70">
-            {segments.length} segments · {depthPreference} depth
+            {segments.length} segments · {depthPreference} depth by default
           </div>
         </div>
       </div>
@@ -294,6 +326,29 @@ export default function SegmentsView({
                       Generating…
                     </p>
                   ) : null}
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2" data-testid={`segment-${segment.segment_id}-depth-switcher`}>
+                    <span className="text-xs text-white/50">Depth:</span>
+                    {DEPTH_CHOICES.map((choice) => {
+                      const active = depthFor(segment.segment_id) === choice.value;
+                      return (
+                        <button
+                          key={choice.value}
+                          type="button"
+                          onClick={() => reExplainAtDepth(segment, choice.value)}
+                          disabled={isLoading}
+                          data-testid={`segment-${segment.segment_id}-depth-${choice.value}`}
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                            active
+                              ? "border-emerald-300/50 bg-emerald-500/15 text-emerald-200"
+                              : "border-white/20 text-white/60 hover:border-white/40 hover:text-white/80"
+                          }`}
+                        >
+                          {choice.label}
+                        </button>
+                      );
+                    })}
+                  </div>
 
                   {isCached ? (
                     <div className="mt-5 flex flex-col gap-2 border-t border-white/10 pt-4" data-testid={`segment-${segment.segment_id}-chat`}>

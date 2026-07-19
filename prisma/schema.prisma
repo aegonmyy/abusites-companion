@@ -100,7 +100,12 @@ model PastQuestion {
 
 model Settings {
   id          Int      @id @default(1)
-  language    String   @default("en") // "en" | "ha" | "mixed"
+  // Default language for one-shot AI explain requests that have no intake
+  // step to ask at (QOTD, CBT review, Past-Questions "Explain with AI") —
+  // "hausa" | "english". Study mode and Notes ask per-topic/per-note
+  // instead (see StudySyllabus.language, Note.language) since those have a
+  // real intake moment to capture the choice at.
+  language    String   @default("english")
   model       String   @default("gemma4:e2b")
   // Optional user overrides for the conversational routes (lesson/chat/gloss/
   // audio) only — the "json" route's low temperature / token cap stay fixed
@@ -146,6 +151,11 @@ model StudySyllabus {
   topic      String
   goal       String
   unitsJson  String       @map("units_json") // serialized syllabus tree
+  // Chosen at intake time (StudyIntakeForm) — "hausa" | "english". Only
+  // affects the tutor explanation/chat/prereq-detection calls for this
+  // syllabus; unit/subunit titles stay English regardless (see
+  // syllabusGenerationSystemPrompt's doc comment for why).
+  language   String       @default("english")
   createdAt  DateTime     @default(now()) @map("created_at")
   intake     StudyIntake  @relation(fields: [intakeId], references: [id], onDelete: Cascade)
   progress   SubunitProgress[]
@@ -214,6 +224,11 @@ model Note {
   // "quick" | "standard" | "deep" — chosen at upload time, remembered for
   // this note's on-demand segment explanation calls (numPredictOverride).
   depthPreference String @default("standard") @map("depth_preference")
+  // Chosen at upload time (new-note screen) — "hausa" | "english". Only
+  // affects segment explanation/chat calls for this note; segment titles
+  // stay English regardless (see notesSegmentSplitSystemPrompt's doc
+  // comment for why).
+  language String @default("english")
   // Still populated, but now only on-demand via the deferred "Generate quiz"
   // action instead of always at creation time.
   quizJson  String?  @map("quiz_json")

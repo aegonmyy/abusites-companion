@@ -7,7 +7,8 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import LoadingSpinner from "./LoadingSpinner";
 import MathText from "./MathText";
-import { explainQuestionSystemPrompt, type Language } from "@/lib/prompts";
+import { explainQuestionSystemPrompt } from "@/lib/prompts";
+import { useDefaultStartLanguage } from "@/lib/language-mode";
 
 type Question = {
   id: string;
@@ -35,10 +36,10 @@ const OPTION_LABELS = ["A", "B", "C", "D"] as const;
 // option-button states. Data layer is the local target's — self-fetches
 // /api/qotd and answers via /api/qotd/answer (no auth, one implicit user).
 export default function QuestionOfDayCard() {
+  const startLanguage = useDefaultStartLanguage();
   const [data, setData] = useState<QotdResponse | null>(null);
   const [chosen, setChosen] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [language, setLanguage] = useState<Language>("en");
   const [aiExplain, setAiExplain] = useState("");
   const [aiExplainLoading, setAiExplainLoading] = useState(false);
   const [aiExplainError, setAiExplainError] = useState<string | null>(null);
@@ -47,10 +48,6 @@ export default function QuestionOfDayCard() {
     fetch("/api/qotd")
       .then((r) => r.json())
       .then(setData);
-    fetch("/api/settings")
-      .then((r) => r.json())
-      .then((d) => setLanguage((d.language as Language) ?? "en"))
-      .catch(() => {});
   }, []);
 
   async function explainWithAi() {
@@ -79,7 +76,7 @@ export default function QuestionOfDayCard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           routeTag: "gloss",
-          system: explainQuestionSystemPrompt(language),
+          system: explainQuestionSystemPrompt(startLanguage),
           numPredictOverride: 220,
           messages: [{ role: "user", content: userContent }],
         }),

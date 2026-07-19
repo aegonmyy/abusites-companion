@@ -17,7 +17,8 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import MathText from "@/components/MathText";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { explainQuestionSystemPrompt, type Language } from "@/lib/prompts";
+import { explainQuestionSystemPrompt } from "@/lib/prompts";
+import { useDefaultStartLanguage } from "@/lib/language-mode";
 
 const labels = ["A", "B", "C", "D"];
 
@@ -36,6 +37,7 @@ type Props = {
 };
 
 export default function QuestionsList({ questions, totalCount }: Props) {
+  const startLanguage = useDefaultStartLanguage();
   const [year, setYear] = useState<string>("");
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
@@ -45,7 +47,6 @@ export default function QuestionsList({ questions, totalCount }: Props) {
     y: number;
     question: CourseQuestion;
   } | null>(null);
-  const [language, setLanguage] = useState<Language>("en");
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
   const [aiExplainLoadingId, setAiExplainLoadingId] = useState<string | null>(null);
   const [aiExplainErrorId, setAiExplainErrorId] = useState<string | null>(null);
@@ -57,12 +58,6 @@ export default function QuestionsList({ questions, totalCount }: Props) {
     return years;
   }, [questions]);
 
-  useEffect(() => {
-    fetch("/api/settings")
-      .then((r) => r.json())
-      .then((d) => setLanguage((d.language as Language) ?? "en"))
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -203,7 +198,7 @@ export default function QuestionsList({ questions, totalCount }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           routeTag: "gloss",
-          system: explainQuestionSystemPrompt(language),
+          system: explainQuestionSystemPrompt(startLanguage),
           numPredictOverride: 220,
           messages: [{ role: "user", content: userContent }],
         }),

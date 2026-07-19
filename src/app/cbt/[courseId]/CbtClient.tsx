@@ -14,7 +14,8 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import MathText from "@/components/MathText";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import { cbtQuestionExplanationSystemPrompt, type Language } from "@/lib/prompts";
+import { cbtQuestionExplanationSystemPrompt } from "@/lib/prompts";
+import { useDefaultStartLanguage } from "@/lib/language-mode";
 
 const labels = ["A", "B", "C", "D"] as const;
 
@@ -50,6 +51,7 @@ function shuffle<T>(items: T[]) {
 }
 
 export default function CbtClient({ course, questions }: Props) {
+  const startLanguage = useDefaultStartLanguage();
   const [phase, setPhase] = useState<Phase>("setup");
   const [selectedYearCounts, setSelectedYearCounts] = useState<Record<string, number>>({});
   const [customMinutes, setCustomMinutes] = useState<string>("");
@@ -60,19 +62,11 @@ export default function CbtClient({ course, questions }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [sessionQuestions, setSessionQuestions] = useState<Question[]>([]);
-  const [language, setLanguage] = useState<Language>("en");
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
   const [aiExplainLoadingId, setAiExplainLoadingId] = useState<string | null>(null);
   const [aiExplainErrorId, setAiExplainErrorId] = useState<string | null>(null);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTriggered = useRef(false);
-
-  useEffect(() => {
-    fetch("/api/settings")
-      .then((r) => r.json())
-      .then((d) => setLanguage((d.language as Language) ?? "en"))
-      .catch(() => {});
-  }, []);
 
   const grouped = useMemo(() => {
     return questions.reduce<Record<string, Question[]>>((acc, item) => {
@@ -216,7 +210,7 @@ export default function CbtClient({ course, questions }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           routeTag: "lesson",
-          system: cbtQuestionExplanationSystemPrompt(language),
+          system: cbtQuestionExplanationSystemPrompt(startLanguage),
           numPredictOverride: 350,
           messages: [{ role: "user", content: userContent }],
         }),
