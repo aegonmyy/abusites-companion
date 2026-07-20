@@ -1,4 +1,4 @@
-# Abusites Companion
+# ABUsites Companion
 
 An offline study companion for Nigerian university students — AI-generated
 syllabi, a streaming tutor you can talk to by text or voice, past-question
@@ -17,7 +17,7 @@ model included, works with the network cable pulled out.
 Nigerian university students studying in Hausa-speaking regions often deal
 with expensive or unreliable mobile data. A cloud-only study app is
 unusable exactly when it would help most — the week before an exam, with
-patchy signal. Abusites Companion trades scale and a hosted database for
+patchy signal. ABUsites Companion trades scale and a hosted database for
 something that keeps working when the connection doesn't: install once
 (needs internet for the npm/model download), then every feature — syllabus
 generation, tutoring, notes, quizzes — runs against a model resident in RAM
@@ -49,6 +49,37 @@ on the same machine.
 - **PWA / offline shell** — a service worker caches the app shell so the UI
   itself loads without a network hop; API calls always go to the local
   Next.js server, never a cache.
+
+## Usage guide
+
+**Study mode:** Go to Study, describe a topic and what you want out of it
+(e.g. "second-year thermodynamics, prep for a test"). The model generates
+a syllabus broken into subunits. Open any subunit and a tutor walks you
+through it, streaming as it writes. Ask follow-up questions by typing or
+tapping the mic.
+
+**Notes:** Go to Notes and create one by pasting text, uploading a PDF, or
+photographing a page. The model breaks it into segments, each with an
+explanation and key concepts. Generate a quiz from any note when you're
+ready to test yourself, and open a chat scoped to that note for anything
+unclear.
+
+**Past questions / CBT:** Go to Past Questions, pick a course, and start a
+timed practice session. Answer questions CBT-style, get scored at the end,
+and on review, ask the model to explain any question, why the correct
+answer is right and where you went wrong.
+
+**Chat:** Open Chat from the sidebar (desktop) or the floating button
+(mobile) for a free conversation with no setup, ask anything, on any
+subject, without creating a syllabus or note first.
+
+**Daily habit:** The home screen shows a question of the day, answering it
+keeps your streak going. Bookmark any subunit, note, or past question along
+the way to find it again quickly later.
+
+**Language:** In Settings, or when creating a syllabus or note, choose
+English or Hausa. The model replies in that language and always matches
+whatever language you actually type in a follow-up, even mid-conversation.
 
 ## Architecture
 
@@ -118,50 +149,65 @@ lives on the student's own machine, and the key is sent nowhere except
 directly to Google's API from the same local server process that already
 holds it.
 
-## Quick install (one line, nothing pre-installed required)
+## Installation
 
-On a machine that has nothing set up yet, this single command installs
-git/Node/Ollama if missing, clones the repo, pulls the model, builds, and
-starts the app, then opens it in your browser:
+The fastest way, on a machine with nothing set up yet: one command installs
+git and Node if they're missing, clones the repo, and walks you through the
+rest.
 
 ```bash
 # macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/aegonmyy/Abu-hackathon/main/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/aegonmyy/abusites-companion/main/bootstrap.sh | bash
 ```
 
 ```powershell
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/aegonmyy/Abu-hackathon/main/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/aegonmyy/abusites-companion/main/bootstrap.ps1 | iex
 ```
 
-Downloads the ~7GB model on first run (needs internet once); everything
-after that runs offline. Safe to re-run, later runs just pull the latest
-code and restart. See `bootstrap.sh` / `bootstrap.ps1` for exactly what
-each step does.
+It asks which model source to set up: **Local** (installs Ollama, pulls the
+~7GB `gemma4:e2b` model, needs internet once, fully offline after that) or
+**Cloud** (skips Ollama and the download entirely, needs your own free
+Google AI Studio API key and a working connection at request time). Either
+way the app itself installs and starts the same.
 
-## Setup (if you already have the repo cloned)
+Safe to re-run: on a machine that already has everything, it just pulls the
+latest code and restarts.
 
-Prerequisites: [Node.js 20+](https://nodejs.org),
-[Ollama](https://ollama.com/download).
+If you'd rather install manually or already have the repo cloned, see
+**Setup** below.
+
+## Setup
+
+If you already have the repo cloned, or the one-line install above isn't an
+option:
+
+**Prerequisites:** [Node.js 20+](https://nodejs.org).
+[Ollama](https://ollama.com/download) too, but only if you're using local
+mode — cloud mode skips it entirely.
 
 ```bash
-git clone <this repo>
+git clone https://github.com/aegonmyy/abusites-companion.git
 cd abusites-companion
 ./setup.sh        # macOS/Linux
 # or
 .\setup.ps1       # Windows (PowerShell)
 ```
 
-This installs dependencies, pulls the `gemma4:e2b` model (~7GB, one-time,
-needs internet), creates the local SQLite schema, and produces a production
-build. Then:
+This asks which model source you want (Local or Cloud, same choice as the
+one-line installer), installs dependencies, sets up the local SQLite
+schema, seeds the course/past-questions catalog, and produces a production
+build. Local mode also pulls `gemma4:e2b` (~7GB, one-time, needs internet).
+Then:
 
 ```bash
-ollama serve      # if not already running
+ollama serve      # local mode only, if not already running
 npm start
 ```
 
-Open <http://localhost:3000>.
+Open <http://localhost:3000>. In cloud mode, open Settings and paste a free
+API key from [Google AI Studio](https://aistudio.google.com/apikey) before
+using the app.
 
 ### Manual setup
 
@@ -169,7 +215,7 @@ If you'd rather run the steps yourself (or the setup script doesn't fit
 your platform):
 
 ```bash
-ollama pull gemma4:e2b
+ollama pull gemma4:e2b     # skip this line entirely for cloud mode
 npm install                 # runs `prisma generate` via postinstall
 npx prisma migrate deploy   # creates data/abusites.db with the schema
 npm run seed                # loads the full catalog from the bundled dataset
@@ -208,6 +254,28 @@ git (`.env` is gitignored) and never add it to `.env.example` or any
 distributed artifact. `scripts/fetch-seed-data.ts` and
 `scripts/reseed-direct.ts` are maintainer-only tools; no app runtime path
 and no part of `setup.sh`/`setup.ps1`/`npm run seed` ever invokes them.
+
+## Dependencies
+
+Everything the app depends on is listed in `package.json` and installed by
+`npm install`, no manual step needed. The ones worth knowing about:
+
+**Core:** Next.js 16, React 19, TypeScript, Tailwind v4.
+**Data:** Prisma 7 with `better-sqlite3` (local SQLite, no hosted database).
+**AI-facing:** none directly, the model itself runs outside the app via
+Ollama (local) or is called over HTTPS (cloud); the app just sends/streams
+plain HTTP requests, no SDK.
+**Content rendering:** `react-markdown`, `remark-gfm`, `remark-math`,
+`rehype-katex` for streamed replies with tables and math.
+**Notes intake:** `pdfjs-dist` for local PDF text extraction, no upload to
+any external service.
+**Dev/test only:** Playwright (browser-driven verification scripts),
+`@supabase/supabase-js` and `pg` (maintainer-only, used solely to refresh
+the bundled seed dataset, never touched by an end user's install).
+
+Outside npm, two things are expected on the host machine: **Node.js 20+**
+always, and **Ollama** only if running in local mode, both handled
+automatically by the install script above.
 
 ## Development
 

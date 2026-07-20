@@ -2,7 +2,7 @@
 # Grinnish Local — zero-touch bootstrap for Linux/macOS.
 #
 # Usage (one line, on a machine with nothing installed):
-#   curl -fsSL https://raw.githubusercontent.com/aegonmyy/Abu-hackathon/main/bootstrap.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/aegonmyy/abusites-companion/main/bootstrap.sh | bash
 #
 # Unlike setup.sh (which assumes Node/Ollama/git are already installed and
 # just checks for them), this script installs whatever is missing, clones
@@ -39,7 +39,7 @@
 
 set -euo pipefail
 
-REPO_URL="https://github.com/aegonmyy/Abu-hackathon.git"
+REPO_URL="https://github.com/aegonmyy/abusites-companion.git"
 INSTALL_DIR="${GRINNISH_INSTALL_DIR:-$HOME/grinnish-local}"
 MODEL="gemma4:e2b"
 NODE_MIN_MAJOR=20

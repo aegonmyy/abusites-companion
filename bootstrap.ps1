@@ -1,7 +1,7 @@
 # Grinnish Local — zero-touch bootstrap for Windows.
 #
 # Usage (one line, on a machine with nothing installed):
-#   irm https://raw.githubusercontent.com/aegonmyy/Abu-hackathon/main/bootstrap.ps1 | iex
+#   irm https://raw.githubusercontent.com/aegonmyy/abusites-companion/main/bootstrap.ps1 | iex
 #
 # Unlike setup.ps1 (which assumes git/Node/Ollama are already installed and
 # just checks for them), this script installs whatever is missing via
@@ -21,7 +21,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$RepoUrl = "https://github.com/aegonmyy/Abu-hackathon.git"
+$RepoUrl = "https://github.com/aegonmyy/abusites-companion.git"
 $InstallDir = if ($env:GRINNISH_INSTALL_DIR) { $env:GRINNISH_INSTALL_DIR } else { Join-Path $env:USERPROFILE "grinnish-local" }
 $Model = "gemma4:e2b"
 $NodeMinMajor = 20

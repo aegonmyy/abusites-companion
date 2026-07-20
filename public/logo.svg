@@ -1,35 +1,16 @@
-
-<svg width="120" height="120" viewBox="38 16 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+<!-- Lantern glyph adapted from game-icons.net "Lantern Flame" by Lorc (lorc.otherwise.gd),
+     licensed CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). Recolored to the
+     app's brand gradient; background block removed. -->
+<svg width="120" height="120" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="orbit" x1="20" y1="20" x2="120" y2="100" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#38BDF8"/>
-      <stop offset="0.5" stop-color="#3B82F6"/>
-      <stop offset="1" stop-color="#10B981"/>
-    </linearGradient>
-    <linearGradient id="book" x1="80" y1="32" x2="80" y2="92" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"/>
-      <stop offset="1" stop-color="#E2E8F0" stop-opacity="0.9"/>
+    <linearGradient id="lantern" x1="60" y1="19" x2="452" y2="492" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FDE68A"/>
+      <stop offset="0.45" stop-color="#FBBF24"/>
+      <stop offset="1" stop-color="#F97316"/>
     </linearGradient>
   </defs>
-
-  <!-- Orbital ring -->
-  <circle cx="80" cy="60" r="34" stroke="url(#orbit)" stroke-width="6"/>
-  <circle cx="100" cy="38" r="4.5" fill="#38BDF8"/>
-  <circle cx="56" cy="86" r="3.5" fill="#10B981"/>
-
-  <!-- Open book -->
   <path
-    d="M54 40C54 35.5817 57.5817 32 62 32H78C82.4183 32 86 35.5817 86 40V88C86 90.2091 84.2091 92 82 92H62C57.5817 92 54 88.4183 54 84V40Z"
-    fill="url(#book)"
+    fill="url(#lantern)"
+    d="M256.53 19.094c-28.53 0-51.842 23.313-51.842 51.843 0 13.565 5.28 25.95 13.875 35.22l-110.532 78.53h296.814l-110.594-78.25c8.755-9.297 14.156-21.8 14.156-35.5 0-28.53-23.344-51.843-51.875-51.843zm0 18.687c18.432 0 33.19 14.727 33.19 33.157 0 9.792-4.177 18.538-10.845 24.594l-22.72-16.06-22.25 15.81c-6.497-6.044-10.53-14.687-10.53-24.343 0-18.43 14.726-33.156 33.156-33.156zM96.44 204l3.343 11.875 65.376 232.75 1.906 6.813h178.876l1.937-6.813 65.375-232.75L416.594 204H96.437zm24.656 18.688h270.812L331.78 436.75H181.25l-60.156-214.063zm146.187 16.687c29.012 47.73-76.807 70.517-60.155 133.75 11.2 25 29.146 41.394 50.22 42.03 48.84 0 73.57-53.528 60.75-99.842-4.847 24.07-24.934 34.845-34.876 22.375-24.115-30.248 36.436-56.768-15.94-98.313zM127.25 473.72v18.686h258.594V473.72H127.25z"
   />
-  <path
-    d="M86 40C86 35.5817 89.5817 32 94 32H110C114.418 32 118 35.5817 118 40V84C118 88.4183 114.418 92 110 92H90C87.7909 92 86 90.2091 86 88V40Z"
-    fill="url(#book)"
-  />
-  <path d="M64 48H78" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
-  <path d="M64 56H78" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
-  <path d="M64 64H78" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
-  <path d="M96 48H110" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
-  <path d="M96 56H110" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
-  <path d="M96 64H110" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"/>
 </svg>

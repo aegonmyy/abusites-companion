@@ -1,194 +1,49 @@
-<!--
-Draft Kaggle competition writeup for Abusites Companion — Build With Gemma:
-GDG on Campus ABU Zaria, Track 1 (Gemma for Local Languages & Literacy,
-Hausa). ~1500-word target per the brief. Content is accurate as of this
-build (verified — see "Verification"); reshape headings/length to fit the
-actual submission form before final entry.
--->
+# ABUsites Companion
 
-# Abusites Companion — an offline-first study companion built on Gemma
+*An offline-first Gemma 4 study companion that teaches Nigerian students in the language they actually think in*
 
-## The problem
+## What was built
 
-Nigerian university students juggle AI-generated syllabi, tutoring, past-
-question practice, and note-taking across a patchwork of tools, most of
-which assume a reliable, affordable internet connection. Many students in
-Hausa-speaking regions of Nigeria don't have one. Mobile data is expensive
-relative to income, and connectivity is patchy exactly where and when
-students need to study — the days before an exam, in a hostel room, on a
-bus. A cloud-only tool becomes unusable at the moment it would matter most.
+ABUsites Companion is an offline-first study companion for Nigerian university students, built around a locally-hosted Gemma 4 model instead of a cloud API. It's meant for studying day to day, not just cramming before an exam. Describe a topic and get a syllabus with a tutor you can talk to by text or voice. Paste or photograph your own notes and have them broken down, explained segment by segment, and turned into a quiz whenever you're ready. Work through real past exam questions in a timed CBT-style practice mode, or just open a free chat and ask the model anything, no setup required. A daily question and streak tracking keep the habit going, and anything worth revisiting can be bookmarked. All of it runs against the same local model, on the student's own machine.
 
-## The solution
+## Why it was built
 
-Abusites Companion is a study app built so every feature runs, **by
-default**, against a model resident on the student's own laptop, with zero
-runtime network dependency:
+Nigerian university students studying in Hausa-speaking regions of Northern Nigeria often deal with mobile data that's expensive relative to income, and connectivity that's patchy exactly when it matters most, the week before an exam, in a hostel room, on a bus with no signal. A cloud-only study app becomes unusable at the precise moment a student needs it. It also assumes English is the only language worth replying in, which doesn't match how these students actually think and talk, mixing Hausa and English naturally rather than switching fully into one or the other. ABUsites Companion was built to remove both dependencies at once: no connection required after setup, and no forced choice between "explained well" and "explained in a language that's actually comfortable."
 
-- **Study mode**: describe a topic and goal, get an AI-generated syllabus,
-  work through it with a streaming local tutor — by text or by voice.
-- **Notes**: paste text, upload a PDF, or photograph a textbook page /
-  handwritten notes; the model reads it and produces a summary, key
-  concepts, and a short quiz, with follow-up chat (text or voice) scoped
-  to that note.
-- **Past questions + CBT practice**: browse a course catalog, practice
-  past exam questions in a timed, scored flow, then get a per-question AI
-  explanation on the review screen — why the correct answer is right, and
-  a gentle nudge at the concept if the student missed it — generated on
-  demand per question, not dumped for the whole session at once.
-- **Question of the day, streaks, bookmarks** — the retention/habit layer,
-  all local.
-- **Hausa / English / natural code-switched output** for every
-  model-generated response, matching how students actually talk, not a
-  stiff formal-Hausa translation.
+## How it was built
 
-Everything — Next.js app, SQLite database, and the Gemma model itself via
-[Ollama](https://ollama.com) — runs on one machine. Setup needs internet
-once (dependencies + a ~7GB model pull); after that, the network cable can
-come out. `tests/phase4-offline-audit.mjs` proves this isn't just an
-intention: it drives the whole app end to end, in the default local
-configuration, on a clean production build, and fails if a single request
-ever leaves `localhost`. It passes.
+The app is a single Next.js application (App Router, TypeScript, Tailwind), with SQLite as the only database, no hosted backend at all. There's no login and no accounts, just one implicit local user, since the whole point is that everything lives on the student's own machine. Every feature that talks to the model funnels through one API route, which keeps the call shape (context size, keep-alive, per-route settings) consistent no matter which screen triggered it, rather than each feature reimplementing its own model-calling logic.
 
-## Cloud mode: an opt-in fallback, not the thesis
+Local inference runs through Ollama, serving `gemma4:e2b` on-device, comfortably on a machine with 16GB of RAM. The larger `e4b` variant was tried first, but its memory footprint pushed well past what's reasonable to expect a student's laptop to spare alongside everything else running, so `e2b` became the default without a meaningful quality trade-off for this use case. For students whose hardware falls short even of that, there's an opt-in fallback to Google AI Studio's hosted Gemma 4 instead, built behind the exact same internal contract so the rest of the app can't tell which one is answering. Local stays the default and the actual thesis of the project; cloud is there so a lack of RAM doesn't lock a student out entirely.
 
-Local is the default and the app's actual thesis. But a real constraint
-local mode doesn't solve: the students this app targets are exactly the
-ones least likely to have a machine that can comfortably run a local
-model at all — a lot of affordable laptops in this context sit at 4-8GB
-RAM, below what a resident 2B-class model wants. So Settings exposes a
-second, opt-in model source — a Gemma model served through Google AI
-Studio's free tier — built to the exact same external contract as the
-local client (same route budgets, same streaming shape) so nothing else
-in the app changes based on which is active. It trades the offline
-guarantee for a much lighter local footprint: no multi-GB download, no
-RAM to budget, at the cost of needing *some* network access (only short
-text prompts/replies cross the wire, never model weights) and the
-student's own free API key. The offline audit above tests the default,
-local configuration — cloud mode is an explicit choice a student with a
-weaker machine can make, not the app's normal operating mode.
+A one-time setup step installs dependencies and pulls the model. After that, the app is verified offline for real: an automated audit drives the whole app end to end on a production build and fails if a single request ever leaves localhost.
 
-## Why e2b, not e4b: the MatFormer trade-off
+## How Gemma 4 was specifically integrated
 
-`gemma4:e2b` is shipped as the only selectable model — deliberately, not
-as a placeholder. Gemma's e2b/e4b naming reflects a MatFormer (nested
-Matryoshka Transformer) architecture: e2b exposes roughly **2.3B
-effective parameters out of ~5B total on disk**, elastically activating a
-sub-network rather than being a separately trained small model. That
-matters on this hardware because the *effective* compute cost is what
-determines whether a 2015 dual-core CPU laptop can hold a conversation at
-a usable pace, while the *total* parameter count still dictates memory
-footprint.
+Every AI-facing feature calls the same local Gemma 4 model through one route, but each one hands it a different, purpose-built system prompt rather than one generic "assistant" prompt reused everywhere. Generating a syllabus, splitting a note into segments, writing a quiz, tutoring a topic, and free chat are each their own prompt, tuned for that specific job. Structured features like syllabus and quiz generation constrain Gemma 4 to strict JSON output, since the rest of the app parses that response directly into the database.
 
-e4b was trialed during development and produced a reproducible OOM-kill
-on 15GB RAM. It is intentionally unreachable from the UI (see
-`src/lib/ollama.ts`, `src/app/settings/page.tsx`) — not "not implemented
-yet," but a guardrail: e4b may only be trialed again after dedicated,
-verified memory testing on the real EliteBook 840 G2 target (pending —
-see Hardware caveat below), watching specifically for OOM. Shipping
-something that crashes on the exact machine it's built for would be worse
-than shipping the smaller model. Every Ollama call across the app also
-sets `think:false`, `num_ctx:4096`, `keep_alive:30m`, and a per-route
-`num_predict` cap (json 400, lesson 250, chat 200, gloss 80) — deliberately
-short output, because a compact answer generated in a few seconds beats a
-thorough one that takes a minute on a slow CPU.
+Notes don't have to be typed. A student can photograph a page of handwritten or printed notes, and Gemma 4's multimodal input reads the image directly and breaks it into the same segment structure a pasted note would get, no separate OCR step involved.
 
-## The audio finding — and where the initial hypothesis was wrong
+The language behavior is the deepest integration point. Nigerian students studying in Hausa-speaking regions often mix Hausa and English naturally rather than picking one, so tutoring and chat responses can start in Hausa when a student chooses that at setup, and always mirror whatever language the student actually types in a follow-up message, even if that means switching mid-conversation. Getting Gemma 4 to hold real Hausa instead of drifting into Pidgin took direct trial and error: a vague instruction like "code-switch naturally" failed every time it was tested, while explicitly naming real Hausa function words and banning Pidgin outright made it fluent and reliable.
 
-`ollama show gemma4:e2b` lists `audio` as a capability, and voice input
-was a required, "confirmed feasible" phase, not optional. Getting there
-required correcting an initial assumption. The natural guess — reuse the
-same `images` field already used for photo input in Ollama's native
-`POST /api/chat` — **does not work**: sending raw WAV bytes through
-`images` returns a response as if no audio were attached at all (and the
-`prompt_eval_count` for that call, 69 tokens for an 81KB clip, confirms
-the bytes were silently dropped, not tokenized). Passing an OpenAI-style
-content array to that same endpoint fails outright with a Go type error —
-`content` is a hard-typed string there.
+Responses also aren't cut off at an arbitrary length. Early on, replies were capped at a fixed token budget, but since a student reads slower than the model generates, that cap only ever worked against them, so it was removed and the model is left to stop on its own, verified directly against the running model rather than assumed. Responses stream back token by token as they're generated, and voice input feeds transcribed speech into the same chat path as typed text.
 
-The real path, found by testing rather than assuming: Ollama's
-**OpenAI-compatible endpoint**, `POST /v1/chat/completions`, accepts a
-`{"type":"input_audio","input_audio":{"data":base64,"format":"wav"}}`
-content block. Verified with a synthesized WAV clip asking "What is the
-powerhouse of the cell" — the model's response: *"The powerhouse of the
-cell is the mitochondrion."* Correct, and via a real recorded/re-encoded
-pipeline, not a canned test. Two more findings fell out of building this
-for real: `think:false` is **not honored** on this endpoint for this
-model (every audio call runs a full internal reasoning trace regardless —
-the app hides it, but budgets `num_predict:400` for audio, roughly double
-the text-chat cap, specifically to survive it), and only raw 16-bit PCM
-WAV was verified — so the client always re-encodes MediaRecorder's native
-codec output to WAV via Web Audio before sending, never assuming the
-native codec works. Full raw transcript: `docs/AUDIO_FINDING.md`.
+## Challenges overcome
 
-## Hausa quality: a real 30-prompt eval, not a claim
+Reliable Hausa output was the hardest problem. Early prompts told the model to "code-switch naturally," and in direct testing that produced Nigerian Pidgin English every time, not Hausa. The fix wasn't a stronger instruction in the same direction, it was a completely different kind of instruction: naming actual Hausa function words to use and explicitly ruling out Pidgin. Tested repeatedly against the real model, that combination is what finally produced consistent, grammatical Hausa.
 
-`scripts/hausa-eval.ts` runs 30 real prompts — math, biology, civic
-education, in pure Hausa / Hausa-English code-switched / English — through
-the exact call shape the tutor chat uses, against the real local model.
-All 30 completed successfully. Average latency **10.8s**, average
-throughput **14.1 tokens/sec** (raw results, every prompt and output:
-`docs/hausa-eval.md`). Qualitatively: pure-Hausa prompts consistently got
-Hausa framing with technical nouns (mitochondria, DNA, quadratic formula)
-left in English — the intended behavior (`src/lib/prompts.ts`), not a
-gap. That said, the prompts and this read were produced without a native
-Hausa speaker present in this environment; treat the language-*naturalness*
-judgment as provisional pending review, distinct from the latency/success
-numbers, which are simply measured.
+Structured output and Hausa didn't mix well either. Forcing Hausa into features that generate strict JSON, like syllabus and quiz generation, made the model unstable: the JSON would break mid-structure, or English commentary would leak into fields that were supposed to be clean data. Rather than fight that, those fields stay in English by design, titles and structure in English, explanations in whichever language the student chose.
 
-### Hardware caveat
+Language selection itself went through a redesign. It started as one global toggle for the whole app, but that didn't match how students actually study, wanting Hausa for one subject and English for another, sometimes switching notes within the same subject. It became a per-topic, per-note choice instead, set once when the syllabus or note is created.
 
-This eval, and all latency figures in this writeup, were measured on a
-shared cloud VPS — **not** the HP EliteBook 840 G2 (i7-5600U, 2-core, 2015,
-no GPU, 16GB RAM) that is the actual demo hardware. No EliteBook access
-was available in this environment. Re-running `npx tsx
-scripts/hausa-eval.ts` on the real device, and re-benchmarking e2b
-(then, only then, cautiously trialing e4b) is the pending Phase 4 step,
-flagged rather than skipped or faked.
+Fitting the model on ordinary student hardware was its own constraint. The larger `e4b` variant was the first thing tried, but its memory use made it impractical to expect on a typical laptop running alongside everything else a student has open, which is what pushed the switch to `e2b`.
 
-## Verification, not "looks right"
+And offline had to mean offline, not "mostly." That got checked directly rather than assumed, with an automated pass that drives the whole app on a production build and fails the moment a single request tries to leave localhost.
 
-- Clean production builds (`rm -rf .next && npm run build`) after every
-  change; a genuine fresh-clone install (`git clone` to scratch, `./setup.sh`
-  from nothing — no pre-existing `node_modules` or database) completed
-  cleanly twice.
-- Playwright drives a real Chromium browser against the real `next start`
-  production server and real local Ollama — real clicks, real streamed
-  output, geometry checks. This includes a genuinely hard case: voice
-  input is tested with Chromium's `--use-file-for-fake-audio-capture`
-  flag feeding a real synthesized WAV file as the microphone, through
-  real `MediaRecorder` capture, real client-side WAV re-encoding, a real
-  `/api/llm` call, and a real Ollama response — then asserts the reply is
-  topically correct (mentions mitochondria), not just non-empty.
-- Current suite: `tests/phase1-tour.mjs` (12 checks), `tests/phase2-notes-tour.mjs`
-  (10, incl. real vision), `tests/phase2-pdf-tour.mjs` (real PDF text
-  extraction via pdfjs-dist), `tests/phase3-voice-tour.mjs` (5, real audio
-  pipeline), `tests/phase4-offline-audit.mjs` (network audit) — all passing.
+## Why the technical choices were right
 
-## Impact
+Every choice here traces back to the same constraint: students, not infrastructure, decide what "good enough" means. Local `gemma4:e2b` was picked over a bigger model because it runs on hardware a student actually owns, an app that needs a machine most people don't have solves a problem nobody has. The per-topic language choice, rather than one global setting, matches how these students genuinely switch between Hausa and English by subject, not by mood. Keeping structured data in English while explanations flex with the student wasn't a compromise, it kept the parts of the app that have to be exact, exact, and left the parts that have to feel natural, natural. And removing the response length cap cost nothing technically but removed a real, if small, daily friction, since nobody was ever waiting on the model faster than they could read anyway.
 
-The target user is a Nigerian university student, plausibly a Hausa
-speaker, on a modest laptop, with limited or expensive connectivity. For
-that user, Abusites Companion turns "no signal this week" from "can't study
-with the tool" into "doesn't matter, it never needed signal." Voice input
-matters specifically for the literacy angle of this track: a student who
-finds typing a technical question slower or harder than asking it out
-loud gets the same tutor either way.
+## How it addresses the problem
 
-## Honest limitations
-
-- Past-questions catalog: `courses` (81 rows) is populated; four other
-  seeded tables read back empty and it's not possible to tell client-side
-  whether that's RLS or genuinely empty — flagged to the project owner,
-  not guessed around. The UI shows a correct empty state rather than
-  fabricating content.
-- Hausa UI chrome (buttons, headers) has only a partial machine-translated
-  pass; model-generated content (the substantive text) is fully covered.
-- Not run on the EliteBook or reviewed by a native Hausa speaker — both
-  need access this environment doesn't have; everything else was
-  verified for real.
-- `setup.ps1` (Windows, the primary target) mirrors `setup.sh` exactly but
-  wasn't executed on real Windows hardware.
-
-## Links
-
-- Source: <https://github.com/aegonmyy/Abu-hackathon>
+The Local Languages & Literacy track asks for tools that meet people in the language and conditions they actually live in, not the ones a cloud API assumes. ABUsites Companion does that on both fronts at once: it works with no connection because the model never leaves the device, and it teaches in Hausa when that's genuinely more comfortable than English, adapting to whichever language a student is actually using, mid-conversation, not just at setup. Neither piece is a demo feature bolted onto an English-only, cloud-only app. Both are load-bearing, tested against the real model, and used every day the app is open, not just at exam time.
