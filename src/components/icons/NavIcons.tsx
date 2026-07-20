@@ -63,6 +63,15 @@ export function TrashIcon({ className }: IconProps) {
   );
 }
 
+export function ChatIcon({ className }: IconProps) {
+  return (
+    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H10l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5Z" />
+      <path d="M8.5 8.5h7M8.5 11.5h4.5" />
+    </svg>
+  );
+}
+
 export function BackIcon({ className }: IconProps) {
   return (
     <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

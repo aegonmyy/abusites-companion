@@ -322,6 +322,24 @@ export function notesSegmentChatSystemPrompt(
 }
 
 /**
+ * General-purpose freeform chat (routeTag "chat", the /chat page) — the
+ * only entry point in the app with no scoping context at all (no subunit,
+ * no note, no question). Every message here is real student-typed text
+ * from the first turn (there's no synthetic auto-teach trigger to open
+ * with, unlike Study mode's initial tutor message), so this always uses
+ * the adaptive follow-up language line, same as notesChatSystemPrompt /
+ * notesSegmentChatSystemPrompt — no StartLanguage param, no Settings-level
+ * default language applies here.
+ */
+export function generalChatSystemPrompt(): string {
+  return [
+    BASE,
+    FOLLOWUP_LANGUAGE_LINE,
+    "The student is chatting with you directly, with no specific topic, syllabus, or note attached. Answer whatever they ask as a helpful study assistant — explain concepts, work through problems, or just talk through what they're studying. Explain simply first, then add detail; use short worked examples where useful.",
+  ].join("\n");
+}
+
+/**
  * Study-mode-only side call, fired automatically after a tutor response
  * finishes (both the initial auto-teach and any follow-up chat reply — see
  * SyllabusView.tsx). Adapted from a real feature in the reference project

@@ -8,6 +8,7 @@ import {
   NotesIcon,
   PastQsIcon,
   BookmarksIcon,
+  ChatIcon,
   SettingsIcon,
 } from "@/components/icons/NavIcons";
 
@@ -17,6 +18,7 @@ const LINKS = [
   { href: "/notes", label: "Notes", Icon: NotesIcon, testid: "sidebar-notes" },
   { href: "/past-questions", label: "Past Qs", Icon: PastQsIcon, testid: "sidebar-past-questions" },
   { href: "/bookmarks", label: "Bookmarks", Icon: BookmarksIcon, testid: "sidebar-bookmarks" },
+  { href: "/chat", label: "Chat", Icon: ChatIcon, testid: "sidebar-chat" },
   { href: "/settings", label: "Settings", Icon: SettingsIcon, testid: "sidebar-settings" },
 ];
 
@@ -63,11 +65,11 @@ export default function Sidebar() {
     >
       <Link
         href="/"
-        aria-label="Abusites Companion home"
+        aria-label="ABUsites Companion home"
         className="mb-2 flex items-center gap-2 rounded-2xl px-2 py-2 opacity-95 transition hover:bg-white/5"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.svg" alt="Abusites Companion" className="h-9 w-auto" />
+        <img src="/logo.svg" alt="ABUsites Companion" className="h-9 w-auto" />
       </Link>
       {LINKS.map(({ href, label, Icon, testid }) => {
         const active = isActive(pathname, href);

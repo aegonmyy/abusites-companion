@@ -4,9 +4,10 @@ import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import BottomTabBar from "@/components/BottomTabBar";
 import HeaderIcons from "@/components/HeaderIcons";
 import Sidebar from "@/components/Sidebar";
+import ChatFAB from "@/components/ChatFAB";
 
 export const metadata: Metadata = {
-  title: "Abusites Companion",
+  title: "ABUsites Companion",
   description: "Offline-first study companion powered by a local Gemma model.",
   manifest: "/manifest.webmanifest",
 };
@@ -29,6 +30,7 @@ export default function RootLayout({
           <HeaderIcons />
           <div className="app-shell-content">{children}</div>
           <BottomTabBar />
+          <ChatFAB />
           <ServiceWorkerRegister />
         </div>
       </body>
