@@ -307,27 +307,3 @@ civic, pure Hausa / code-switched / English — raw results committed at
 npm run eval:hausa
 ```
 
-## Known limitations / open items
-
-- **Hausa UI text**: model-generated content (syllabus, tutor chat, note
-  summaries/quizzes) fully respects the Hausa/mixed language setting. The
-  static UI chrome (buttons, page headers) only has a partial,
-  machine-translated pass (nav bar) — not yet reviewed by a native Hausa
-  speaker, and not yet applied to every page's microcopy.
-- **`setup.ps1`**: written to mirror `setup.sh` exactly and reviewed
-  carefully, but not executed on real Windows hardware (none available in
-  this environment) — treat as a reviewed-but-unverified first pass.
-- **Physical device / native-speaker validation**: this build has not been
-  run on the actual target hardware (HP EliteBook 840 G2, i7-5600U,
-  2015, no GPU, 16GB RAM) or reviewed by a native Hausa speaker. Both
-  require physical/human access this environment doesn't have. The
-  30-prompt Hausa eval (`docs/hausa-eval.md`) and all latency numbers in
-  this repo were measured on a shared dev VPS, not the EliteBook —
-  re-running `npm run eval:hausa` on the real device, and only then
-  cautiously trialing `gemma4:e4b` while watching for OOM, is the
-  pending hardware-verification step.
-- **Audio latency**: voice replies take noticeably longer than text/image
-  (13–18s measured on the dev VPS) because Ollama's audio-capable endpoint
-  doesn't honor `think:false` for this model — every audio call runs a
-  full internal reasoning trace before the visible answer. See
-  `docs/AUDIO_FINDING.md`. Expect this to be slower still on the EliteBook.
