@@ -52,6 +52,12 @@ on the same machine.
 
 ## Usage guide
 
+**Starting and stopping (Windows):** setup creates two Desktop shortcuts,
+**Start ABUsites Companion** and **Stop ABUsites Companion**. Use those
+for everyday use, no terminal needed after the initial install. Start
+launches Ollama (if needed) and the app, then opens your browser; Stop
+shuts both down cleanly.
+
 **Study mode:** Go to Study, describe a topic and what you want out of it
 (e.g. "second-year thermodynamics, prep for a test"). The model generates
 a syllabus broken into subunits. Open any subunit and a tutor walks you
@@ -173,6 +179,11 @@ way the app itself installs and starts the same.
 
 Safe to re-run: on a machine that already has everything, it just pulls the
 latest code and restarts.
+
+**Windows:** run this from a normal PowerShell window, not "Run as
+Administrator" — winget (used to install git/Node/Ollama) reliably fails
+under elevation, a confirmed upstream limitation, not something specific
+to this app.
 
 If you'd rather install manually or already have the repo cloned, see
 **Setup** below.

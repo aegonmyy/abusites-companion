@@ -92,8 +92,32 @@ npm run seed
 Info "Building production bundle..."
 npm run build
 
+Info "Creating desktop shortcuts..."
+try {
+  $WshShell = New-Object -ComObject WScript.Shell
+  $StartShortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\Start ABUsites Companion.lnk")
+  $StartShortcut.TargetPath = Join-Path $PSScriptRoot "start.bat"
+  $StartShortcut.WorkingDirectory = $PSScriptRoot
+  $StartShortcut.IconLocation = Join-Path $PSScriptRoot "src\app\favicon.ico"
+  $StartShortcut.Save()
+
+  $StopShortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\Stop ABUsites Companion.lnk")
+  $StopShortcut.TargetPath = Join-Path $PSScriptRoot "stop.bat"
+  $StopShortcut.WorkingDirectory = $PSScriptRoot
+  $StopShortcut.IconLocation = Join-Path $PSScriptRoot "src\app\favicon.ico"
+  $StopShortcut.Save()
+  Info "Desktop shortcuts created: 'Start ABUsites Companion' and 'Stop ABUsites Companion'."
+} catch {
+  Warn "Couldn't create desktop shortcuts, not critical, you can still run start.bat / stop.bat directly from $PSScriptRoot."
+}
+
 Info "Setup complete."
 Write-Host ""
+Write-Host "  Easiest: double-click 'Start ABUsites Companion' on your Desktop."
+Write-Host "  It starts Ollama if needed, starts the app, and opens your browser."
+Write-Host "  Use 'Stop ABUsites Companion' to shut it down when you're done."
+Write-Host ""
+Write-Host "  Or manually:"
 if ($ModelSource -eq "cloud") {
   Write-Host "  1. Start the app:  npm start"
   Write-Host "  2. Open:           http://localhost:3000"

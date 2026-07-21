@@ -214,6 +214,25 @@ for ($i = 0; $i -lt 30; $i++) {
   } catch { }
 }
 
+Info "Creating desktop shortcuts..."
+try {
+  $WshShell = New-Object -ComObject WScript.Shell
+  $StartShortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\Start ABUsites Companion.lnk")
+  $StartShortcut.TargetPath = Join-Path $InstallDir "start.bat"
+  $StartShortcut.WorkingDirectory = $InstallDir
+  $StartShortcut.IconLocation = Join-Path $InstallDir "src\app\favicon.ico"
+  $StartShortcut.Save()
+
+  $StopShortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\Stop ABUsites Companion.lnk")
+  $StopShortcut.TargetPath = Join-Path $InstallDir "stop.bat"
+  $StopShortcut.WorkingDirectory = $InstallDir
+  $StopShortcut.IconLocation = Join-Path $InstallDir "src\app\favicon.ico"
+  $StopShortcut.Save()
+  Info "Desktop shortcuts created: 'Start ABUsites Companion' and 'Stop ABUsites Companion'."
+} catch {
+  Warn "Couldn't create desktop shortcuts, not critical, you can still run start.bat / stop.bat directly from $InstallDir."
+}
+
 Info "Setup complete. Opening http://localhost:3000 ..."
 Start-Process "http://localhost:3000"
 
