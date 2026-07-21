@@ -19,15 +19,23 @@
 # error when the calling process is elevated — this is a confirmed
 # upstream winget/MSIX limitation (microsoft/winget-cli#1474), not
 # something this script can work around. Verified directly on real
-# Windows Server 2022 hardware.
+# Windows Server 2022 hardware. Note: the built-in Administrator account
+# has UAC's Admin Approval Mode disabled by default, so it is *always*
+# elevated no matter how PowerShell is opened — this script needs to run
+# as a regular (non-built-in-Administrator) user account.
+#
+# All errors below use `throw` rather than `exit`. That's deliberate: this
+# script is meant to be piped into the *current* shell via `irm | iex`,
+# and `exit` in that context kills the whole interactive PowerShell window
+# instantly rather than just stopping the script, so there's no chance to
+# read the error. `throw` + the top-level try/catch stops cleanly instead.
 
 $ErrorActionPreference = "Stop"
 
+try {
+
 if (([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-  Write-Host "==> This is running elevated (Administrator)." -ForegroundColor Red
-  Write-Host "==> winget reliably fails under elevation (a known upstream MSIX limitation)." -ForegroundColor Red
-  Write-Host "==> Close this window and re-run from a normal, non-Administrator PowerShell prompt." -ForegroundColor Red
-  exit 1
+  throw "This is running elevated (Administrator). winget reliably fails under elevation (a known upstream MSIX limitation). Close this window and re-run from a normal, non-Administrator PowerShell prompt."
 }
 
 # npm/npx resolve to npm.ps1/npx.ps1 on Windows, which the default execution
@@ -44,7 +52,7 @@ $NodeMinMajor = 20
 
 function Info($msg) { Write-Host "==> $msg" -ForegroundColor Green }
 function Warn($msg) { Write-Host "==> $msg" -ForegroundColor Yellow }
-function Fail($msg) { Write-Host "==> $msg" -ForegroundColor Red; exit 1 }
+function Fail($msg) { throw $msg }
 
 function Test-CommandExists($name) {
   return [bool](Get-Command $name -ErrorAction SilentlyContinue)
@@ -219,3 +227,9 @@ if ($ModelSource -eq "cloud") {
   Write-Host "  https://aistudio.google.com/apikey) before using it."
 }
 Write-Host ""
+
+} catch {
+  Write-Host ""
+  Write-Host "==> $($_.Exception.Message)" -ForegroundColor Red
+  Write-Host ""
+}
