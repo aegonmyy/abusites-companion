@@ -21,6 +21,13 @@
 
 $ErrorActionPreference = "Stop"
 
+# npm/npx resolve to npm.ps1/npx.ps1 on Windows, which the default execution
+# policy (Restricted, on most machines) blocks from running at all, even
+# though this script itself just ran via `irm ... | iex`. Process-scoped
+# only, reverts when this shell closes, doesn't touch the machine-wide
+# policy.
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+
 $RepoUrl = "https://github.com/aegonmyy/abusites-companion.git"
 $InstallDir = if ($env:GRINNISH_INSTALL_DIR) { $env:GRINNISH_INSTALL_DIR } else { Join-Path $env:USERPROFILE "grinnish-local" }
 $Model = "gemma4:e2b"

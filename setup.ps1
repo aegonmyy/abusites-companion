@@ -10,6 +10,13 @@
 #   powershell -ExecutionPolicy Bypass -File .\setup.ps1
 
 $ErrorActionPreference = "Stop"
+
+# npm/npx resolve to npm.ps1/npx.ps1 on Windows, which the default execution
+# policy blocks from running — set here too in case this script is run
+# directly (`.\setup.ps1`) rather than via the documented `-ExecutionPolicy
+# Bypass -File` invocation above. Process-scoped, reverts on shell close.
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+
 $Model = "gemma4:e2b"
 
 function Info($msg)  { Write-Host "==> $msg" -ForegroundColor Green }
