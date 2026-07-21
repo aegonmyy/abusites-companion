@@ -9,17 +9,26 @@
 # never touched before (a judge's laptop, a demo machine), not just your
 # own dev box.
 #
-# NOTE: written and reviewed for correctness, but not executed on real
-# Windows hardware (no Windows machine available in this environment).
-# winget package IDs (Git.Git, OpenJS.NodeJS.LTS, Ollama.Ollama) are the
-# documented/published IDs for each project as of this writing — verify on
-# first real run and adjust if a publisher has renamed their package.
-#
 # Requires winget (built into Windows 10 21H2+ and all Windows 11). If
 # winget isn't present, this fails with a clear manual-install pointer for
 # whatever's missing rather than guessing at another package manager.
+#
+# IMPORTANT: run this from a normal (non-Administrator) PowerShell window.
+# winget is an MSIX app with an App Execution Alias, which reliably fails
+# with a cryptic "0x8a15000f: Data required by the source is missing"
+# error when the calling process is elevated — this is a confirmed
+# upstream winget/MSIX limitation (microsoft/winget-cli#1474), not
+# something this script can work around. Verified directly on real
+# Windows Server 2022 hardware.
 
 $ErrorActionPreference = "Stop"
+
+if (([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+  Write-Host "==> This is running elevated (Administrator)." -ForegroundColor Red
+  Write-Host "==> winget reliably fails under elevation (a known upstream MSIX limitation)." -ForegroundColor Red
+  Write-Host "==> Close this window and re-run from a normal, non-Administrator PowerShell prompt." -ForegroundColor Red
+  exit 1
+}
 
 # npm/npx resolve to npm.ps1/npx.ps1 on Windows, which the default execution
 # policy (Restricted, on most machines) blocks from running at all, even

@@ -1,12 +1,12 @@
 # Grinnish Local — one-command setup for Windows (PowerShell).
 # Mirrors setup.sh — see that file for the full rationale of each step.
 #
-# NOTE: written and reviewed for correctness, but not executed on real
-# Windows hardware as part of this work (no Windows machine available in
-# this environment). Treat as a best-effort first pass; flagged as an open
-# item for validation on the actual target device (see final report).
+# Assumes Node.js (and Ollama, for local mode) are already installed — if
+# they're not, use bootstrap.ps1 instead, which installs everything via
+# winget. Unlike bootstrap.ps1, this script doesn't call winget itself, so
+# it's safe to run from either an elevated or a normal PowerShell prompt.
 #
-# Usage (from an elevated or normal PowerShell prompt):
+# Usage:
 #   powershell -ExecutionPolicy Bypass -File .\setup.ps1
 
 $ErrorActionPreference = "Stop"
