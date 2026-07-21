@@ -95,8 +95,16 @@ info "git OK ($(git --version))."
 
 # --------------------------------------------------------- clone/pull ----
 if [ -d "$INSTALL_DIR/.git" ]; then
-  info "Repo already exists at $INSTALL_DIR — pulling latest…"
-  git -C "$INSTALL_DIR" pull --ff-only
+  info "Repo already exists at $INSTALL_DIR — checking for updates…"
+  git -C "$INSTALL_DIR" fetch origin main --quiet
+  LOCAL_HEAD=$(git -C "$INSTALL_DIR" rev-parse HEAD)
+  REMOTE_HEAD=$(git -C "$INSTALL_DIR" rev-parse origin/main)
+  if [ "$LOCAL_HEAD" = "$REMOTE_HEAD" ]; then
+    info "Already up to date, skipping download."
+  else
+    info "Updating to latest…"
+    git -C "$INSTALL_DIR" pull --ff-only
+  fi
 else
   info "Cloning into $INSTALL_DIR…"
   git clone "$REPO_URL" "$INSTALL_DIR"

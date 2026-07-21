@@ -82,8 +82,16 @@ Info "git OK ($(git --version))."
 
 # --------------------------------------------------------- clone/pull ----
 if (Test-Path (Join-Path $InstallDir ".git")) {
-  Info "Repo already exists at $InstallDir - pulling latest..."
-  git -C $InstallDir pull --ff-only
+  Info "Repo already exists at $InstallDir - checking for updates..."
+  git -C $InstallDir fetch origin main --quiet
+  $LocalHead = git -C $InstallDir rev-parse HEAD
+  $RemoteHead = git -C $InstallDir rev-parse origin/main
+  if ($LocalHead -eq $RemoteHead) {
+    Info "Already up to date, skipping download."
+  } else {
+    Info "Updating to latest..."
+    git -C $InstallDir pull --ff-only
+  }
 } else {
   Info "Cloning into $InstallDir..."
   git clone $RepoUrl $InstallDir
