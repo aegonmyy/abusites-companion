@@ -14,6 +14,17 @@
  * whether it's inside a string literal) so it only escapes control chars and
  * fixes backslashes *inside* strings, and only strips commas *outside* them.
  * `parseModelJson` tries a straight parse first, then the repaired form.
+ *
+ * A fourth failure mode is a shape problem, not a syntax one, so text repair
+ * doesn't touch it: with responseMimeType:"application/json" + Gemini's
+ * cloud path, the model sometimes wraps the whole object in a single-element
+ * array (`[{...}]`) instead of returning the bare object (`{...}`) the
+ * prompt asked for — confirmed directly against the real API, 4 of 8 real
+ * syllabus-generation calls came back array-wrapped. The actual data is
+ * correct either way, just the outer shape varies. Every caller here always
+ * expects a bare object (never a real top-level array), so
+ * `parseModelJson` unwraps a single-element array automatically rather than
+ * making every call site defend against it separately.
  */
 export function repairModelJson(raw: string): string {
   let out = "";
@@ -69,10 +80,19 @@ export function repairModelJson(raw: string): string {
   return out;
 }
 
-export function parseModelJson(raw: string): unknown {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return JSON.parse(repairModelJson(raw));
+function unwrapSingleElementArray(value: unknown): unknown {
+  if (Array.isArray(value) && value.length === 1 && typeof value[0] === "object" && value[0] !== null) {
+    return value[0];
   }
+  return value;
+}
+
+export function parseModelJson(raw: string): unknown {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    parsed = JSON.parse(repairModelJson(raw));
+  }
+  return unwrapSingleElementArray(parsed);
 }

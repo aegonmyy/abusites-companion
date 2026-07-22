@@ -18,7 +18,7 @@ import MicButton from "@/components/MicButton";
 import SendGlyph from "@/components/SendGlyph";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { BackIcon, BookmarksIcon, TrashIcon } from "@/components/icons/NavIcons";
-import { notesChatSystemPrompt, notesQuizSystemPrompt } from "@/lib/prompts";
+import { notesChatSystemPrompt, notesQuizSystemPrompt, type StartLanguage } from "@/lib/prompts";
 import { parseModelJson } from "@/lib/parse-model-json";
 import SegmentsView, { type Segment } from "./SegmentsView";
 import { isDepthPreference } from "@/lib/notes-depth";
@@ -85,6 +85,12 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
   const [quizGenerating, setQuizGenerating] = useState(false);
   const [quizError, setQuizError] = useState<string | null>(null);
   const [quizCount, setQuizCount] = useState(5);
+  // Defaults to the note's own language once it loads, but the student can
+  // override it per-generation — previously this silently always inherited
+  // note.language with no way to ask for the quiz in the other language
+  // without re-uploading the whole note.
+  const [quizLanguage, setQuizLanguage] = useState<StartLanguage>("english");
+  const [quizLanguageTouched, setQuizLanguageTouched] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -97,6 +103,16 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
         setModelSource(d.modelSource === "cloud" ? "cloud" : "local");
       });
   }, [id]);
+
+  // Default the quiz-language selector to the note's own language once it
+  // loads, but only until the student actually touches the selector
+  // themselves — after that, their explicit choice wins on every
+  // regenerate, it doesn't keep snapping back.
+  useEffect(() => {
+    if (note && !quizLanguageTouched) {
+      setQuizLanguage(sanitizeStartLanguage(note.language));
+    }
+  }, [note, quizLanguageTouched]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -161,7 +177,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           routeTag: "json",
-          system: notesQuizSystemPrompt(sanitizeStartLanguage(note?.language), quizCount),
+          system: notesQuizSystemPrompt(quizLanguage, quizCount),
           // Scales with question count (~150 tokens/question is a
           // comfortable ceiling for a concise question + 4 options + index,
           // plus a fixed overhead for JSON structure) — verified against the
@@ -390,7 +406,30 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
                     : "Not generated yet — build one whenever you're ready to test yourself."}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1 rounded-full border border-white/20 p-0.5" role="radiogroup" aria-label="Quiz language">
+                  {(["english", "hausa"] as const).map((lang) => (
+                    <button
+                      key={lang}
+                      type="button"
+                      role="radio"
+                      aria-checked={quizLanguage === lang}
+                      data-testid={`quiz-language-${lang}`}
+                      onClick={() => {
+                        setQuizLanguage(lang);
+                        setQuizLanguageTouched(true);
+                      }}
+                      disabled={quizGenerating}
+                      className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition disabled:opacity-60 ${
+                        quizLanguage === lang
+                          ? "bg-emerald-500/15 text-emerald-200"
+                          : "text-white/60 hover:text-white/80"
+                      }`}
+                    >
+                      {lang}
+                    </button>
+                  ))}
+                </div>
                 <label className="flex items-center gap-1.5 text-xs text-white/60" title="The model may return fewer than this on higher counts.">
                   Up to
                   <input

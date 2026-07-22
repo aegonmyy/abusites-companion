@@ -24,14 +24,22 @@
  * guess): this model streams internal reasoning as ordinary content parts
  * flagged `"thought": true`, unrequested and unfiltered by default — the
  * same class of finding as ollamaChatAudioStream's documented behavior for
- * the local model's audio endpoint (see docs/AUDIO_FINDING.md). There is
- * no way to disable it: `generationConfig.thinkingConfig.thinkingBudget`
- * returns `400 Thinking budget is not supported for this model`. Measured
- * cost: a trivial "Say OK and nothing else" burned 82 thinking tokens
+ * the local model's audio endpoint (see docs/AUDIO_FINDING.md). The
+ * documented way to disable it doesn't work:
+ * `generationConfig.thinkingConfig.thinkingBudget` returns `400 Thinking
+ * budget is not supported for this model` on both available Gemma 4
+ * variants (26b-a4b and 31b dense — tried both directly). Un-costed at
+ * first: a trivial "Say OK and nothing else" burned 82 thinking tokens
  * before the 1-token real answer; a realistic gloss-shaped explanation
- * prompt burned 647 thinking tokens against 193 real content tokens.
- * sseToGeminiTextStream filters `thought:true` parts out of what the user
- * sees.
+ * prompt burned 647 thinking tokens against 193 real content tokens; a real
+ * syllabus-generation call burned 1538 thinking tokens, 44.3s total before
+ * this was found. The actual fix, `thinkingConfig.thinkingLevel:"MINIMAL"`
+ * — a different, undocumented parameter, not `thinkingBudget` — does work,
+ * confirmed directly (no `thoughtsTokenCount` at all in the response
+ * afterward, same syllabus call down to ~12s with identical correct
+ * output). Applied below on every request. sseToGeminiTextStream still
+ * filters `thought:true` parts as defense in depth, in case any thinking
+ * content ever slips through despite MINIMAL.
  *
  * TOKEN BUDGET, DELIBERATELY NOT ROUTE-CAPPED: ollama.ts's NUM_PREDICT
  * table (gloss:80, chat:200, etc.) exists to keep output short and fast on
@@ -151,6 +159,19 @@ export async function geminiChatStream({
       // Same constrained-decoding idea as Ollama's format:"json" — forces
       // structurally valid JSON at the source for the "json" route.
       ...(routeTag === "json" ? { responseMimeType: "application/json" } : {}),
+      // thinkingConfig.thinkingBudget is flatly rejected for this model
+      // ("Thinking budget is not supported for this model") — confirmed
+      // directly, that's not this. thinkingLevel:"MINIMAL" is a different,
+      // undocumented-but-real parameter that actually works: verified
+      // directly against the live API, the real syllabus-generation prompt
+      // went from 44.3s (1538 thinking tokens before any real content) down
+      // to ~12s with no thoughtsTokenCount at all in the response, same
+      // correct output. Applied to every route, not just "json" — the same
+      // thinking tax hits conversational routes too (a realistic gloss
+      // prompt burned 647 thinking tokens against 193 real content tokens
+      // per the file doc comment above), and cloud mode exists specifically
+      // for latency/hardware-constrained cases where this matters most.
+      thinkingConfig: { thinkingLevel: "MINIMAL" },
     },
   };
 
