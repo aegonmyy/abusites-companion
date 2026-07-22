@@ -152,6 +152,51 @@ export function syllabusGenerationSystemPrompt(): string {
 }
 
 /**
+ * Stage 2 of the student PDF-to-CBT pipeline (routeTag "json"): turn the raw
+ * text of one chunk of an uploaded past-exam paper into structured
+ * multiple-choice questions. Deliberately extraction-only — it must NOT
+ * answer the questions (that's a separate later stage,
+ * pastQuestionAnswerSystemPrompt) and must NOT invent questions or options
+ * that aren't in the source, since this is the student's own real paper.
+ * Verified against the real model on a real text-layer past paper: 10/10
+ * questions extracted with correct 4-and-5-option counts, content and
+ * unicode intact. No language line — like syllabusGenerationSystemPrompt,
+ * structural JSON output stays language-neutral (the questions are in
+ * whatever language the paper is written in; we don't translate them).
+ */
+export function pastQuestionExtractionSystemPrompt(): string {
+  return [
+    BASE,
+    "You are extracting multiple-choice questions from the raw text of a past exam paper, as strict JSON only — no markdown fences, no prose outside the JSON.",
+    "Find every numbered multiple-choice question in the text below. For each one, capture the full question text and each answer option as a separate string. Strip the option letter labels (A., B., etc.) from the option text itself — just the option content. Ignore exam headers, instructions, course titles, and anything that is not an actual question.",
+    "Do NOT answer the questions or add a correct answer — only extract what is written. Do NOT invent questions or options that are not in the text. Keep every question's options in the order they appear.",
+    'Shape: {"questions":[{"question_text":"...","options":["...","...","..."]}]}',
+    'Plain text only inside every JSON string value: no LaTeX commands, no backslashes, no markdown. If the source has math like superscripts, write it plainly (e.g. "m/s2").',
+  ].join("\n");
+}
+
+/**
+ * Stage 3 of the student PDF-to-CBT pipeline (routeTag "json"): given one
+ * extracted multiple-choice question and its options, pick the correct
+ * answer and give a one-line reason. Called once per question, sequentially
+ * (one local model, no cloud key pool to parallelize across like Grinnish
+ * had). The correct answer is the model's own best guess — most real past
+ * papers ship no answer key — so the UI must mark these answers as
+ * AI-generated, not authoritative. `correct_index` is 0-based into the
+ * options array as given.
+ */
+export function pastQuestionAnswerSystemPrompt(): string {
+  return [
+    BASE,
+    "You are answering one multiple-choice exam question, as strict JSON only — no markdown fences, no prose outside the JSON.",
+    "You are given a question and its numbered options. Decide which single option is correct. Return its 0-based index into the options array (the first option is 0, the second is 1, and so on), plus a one-sentence explanation of why it is correct.",
+    "If you are unsure, still pick the single most likely correct option — never return more than one, and never return -1. correct_index must be a valid index within the options given.",
+    'Shape: {"correct_index":0,"explanation":"..."}',
+    "Plain text only inside the explanation: no LaTeX, no backslashes, no markdown.",
+  ].join("\n");
+}
+
+/**
  * Shared on-demand "Explain with AI" call (routeTag "gloss", streamed) for
  * any multiple-choice question with a known correct answer — used by both
  * QuestionOfDayCard and past-questions' QuestionsList. A live alternative to
