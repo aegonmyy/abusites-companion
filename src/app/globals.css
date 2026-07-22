@@ -38,10 +38,16 @@ body {
 
 /* Clearance for the desktop sidebar (Sidebar.tsx): fixed, `left-4` (1rem)
  * + `w-56` (14rem) wide = right edge at 15rem, plus breathing room so
- * content's centered `max-w-3xl` column never starts underneath it. */
+ * content's centered `max-w-3xl` column never starts underneath it.
+ * Collapsed state (icon-only, `w-16`) needs much less clearance — the
+ * freed width goes straight back to page content, per AppShellContent's
+ * `data-sidebar-collapsed` attribute, driven by SidebarProvider. */
 @media (min-width: 640px) {
   .app-shell-content {
     padding-left: 17rem;
+  }
+  .app-shell-content[data-sidebar-collapsed="true"] {
+    padding-left: 6.5rem;
   }
 }
 

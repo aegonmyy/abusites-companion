@@ -10,7 +10,9 @@ import {
   BookmarksIcon,
   ChatIcon,
   SettingsIcon,
+  BackIcon,
 } from "@/components/icons/NavIcons";
+import { useSidebar } from "@/lib/sidebar-context";
 
 const LINKS = [
   { href: "/", label: "Home", Icon: HomeIcon, testid: "sidebar-home" },
@@ -38,6 +40,12 @@ function isActive(pathname: string, href: string): boolean {
  * this is chrome docked over the gradient background, same category as the
  * bottom tab bar it complements — not a content panel.
  *
+ * Collapsible: state lives in SidebarProvider (layout.tsx), persisted to
+ * localStorage, shared with AppShellContent so collapsing this frees the
+ * width straight back to whatever page is in focus (e.g. Study mode) rather
+ * than leaving it as dead space — see globals.css's
+ * `.app-shell-content[data-sidebar-collapsed="true"]` rule.
+ *
  * Unlike HeaderIcons (Home-only, to save phone screen space), all 6
  * destinations show on every route — desktop has no screen-space
  * constraint forcing that trade-off.
@@ -57,11 +65,16 @@ function isActive(pathname: string, href: string): boolean {
  */
 export default function Sidebar() {
   const pathname = usePathname();
+  const { collapsed, toggle } = useSidebar();
 
   return (
     <nav
       data-testid="desktop-sidebar"
-      className="fixed inset-y-4 left-4 z-50 hidden w-56 flex-col gap-1 rounded-3xl border border-white/10 bg-white/10 p-3 shadow-xl backdrop-blur sm:flex"
+      data-collapsed={collapsed}
+      className={
+        "fixed inset-y-4 left-4 z-50 hidden flex-col gap-1 rounded-3xl border border-white/10 bg-white/10 p-3 shadow-xl backdrop-blur transition-[width] duration-200 sm:flex " +
+        (collapsed ? "w-16" : "w-56")
+      }
     >
       <Link
         href="/"
@@ -69,7 +82,7 @@ export default function Sidebar() {
         className="mb-2 flex items-center gap-2 rounded-2xl px-2 py-2 opacity-95 transition hover:bg-white/5"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.svg" alt="ABUsites Companion" className="h-9 w-auto" />
+        <img src="/logo.svg" alt="ABUsites Companion" className="h-9 w-9 shrink-0" />
       </Link>
       {LINKS.map(({ href, label, Icon, testid }) => {
         const active = isActive(pathname, href);
@@ -80,16 +93,39 @@ export default function Sidebar() {
             aria-current={active ? "page" : undefined}
             data-testid={testid}
             data-active={active ? "true" : undefined}
+            title={collapsed ? label : undefined}
             className={
               "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition " +
+              (collapsed ? "justify-center" : "") +
+              " " +
               (active ? "bg-emerald-500/15 text-emerald-300" : "text-white/60 hover:text-white/80")
             }
           >
-            <Icon />
-            <span>{label}</span>
+            <Icon className="shrink-0" />
+            {!collapsed && <span>{label}</span>}
           </Link>
         );
       })}
+
+      <button
+        type="button"
+        onClick={toggle}
+        data-testid="sidebar-collapse-toggle"
+        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        className={
+          "mt-auto flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-white/50 transition hover:bg-white/5 hover:text-white/80 " +
+          (collapsed ? "justify-center" : "")
+        }
+      >
+        <span
+          className="flex shrink-0 transition-transform duration-200"
+          style={{ transform: collapsed ? "rotate(180deg)" : "none" }}
+        >
+          <BackIcon />
+        </span>
+        {!collapsed && <span>Collapse</span>}
+      </button>
     </nav>
   );
 }
