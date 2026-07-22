@@ -15,6 +15,7 @@ export type CourseSummary = {
   id: string;
   code: string;
   title: string;
+  isCustom?: boolean;
 };
 
 export type CoursePayload = {
@@ -109,13 +110,18 @@ export default function CourseList({ courses }: Props) {
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return courses;
-    const q = query.trim().toLowerCase();
-    return courses.filter(
-      (course) =>
-        course.code.toLowerCase().includes(q) ||
-        course.title.toLowerCase().includes(q),
-    );
+    const base = !query.trim()
+      ? courses
+      : courses.filter((course) => {
+          const q = query.trim().toLowerCase();
+          return (
+            course.code.toLowerCase().includes(q) ||
+            course.title.toLowerCase().includes(q)
+          );
+        });
+    // Student uploads first, so a freshly-built paper is the first thing
+    // they see rather than buried in the seeded catalog.
+    return [...base].sort((a, b) => Number(Boolean(b.isCustom)) - Number(Boolean(a.isCustom)));
   }, [courses, query]);
 
   useEffect(() => {
@@ -239,7 +245,14 @@ export default function CourseList({ courses }: Props) {
               >
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-sm text-white/60">{course.code}</div>
+                    <div className="flex items-center gap-2 text-sm text-white/60">
+                      {course.code}
+                      {course.isCustom && (
+                        <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+                          Your upload
+                        </span>
+                      )}
+                    </div>
                     <div className="mt-2 text-lg font-semibold text-white">
                       {course.title}
                     </div>
