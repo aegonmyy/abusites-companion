@@ -147,7 +147,14 @@ export default function UploadPastPaperPage() {
       const { courseId } = (await saveRes.json()) as { courseId: string };
 
       setPhase("done");
-      router.push(`/cbt/${courseId}`);
+      // Land back on the Past Questions list, where the new course now
+      // appears under "Your uploads" — the student picks it there to view
+      // the questions or start a CBT, same as any seeded course. We don't
+      // jump straight into a CBT: uploading is about adding a course to the
+      // list, not immediately practising it. courseId is intentionally
+      // unused here now (kept from the save response for clarity).
+      void courseId;
+      router.push(`/past-questions`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setPhase("error");
@@ -165,7 +172,7 @@ export default function UploadPastPaperPage() {
       case "saving":
         return "Saving your course…";
       case "done":
-        return "Done! Opening your practice…";
+        return "Saved! Taking you to your past questions…";
       default:
         return "";
     }
@@ -185,9 +192,10 @@ export default function UploadPastPaperPage() {
         </div>
 
         <p className="mb-6 text-sm text-white/70">
-          Upload a past-questions PDF and it becomes a practice test you can take right here,
-          fully offline. The answers are worked out by the local AI and can contain mistakes —
-          treat them as a study aid, not a marking scheme.
+          Upload a past-questions PDF and it gets added to your Past Questions as its own
+          course, fully offline. Open it any time to review the questions or start a timed CBT.
+          The answers are worked out by the local AI and can contain mistakes — treat them as a
+          study aid, not a marking scheme.
         </p>
 
         <div className="grid gap-4">
@@ -237,7 +245,7 @@ export default function UploadPastPaperPage() {
             className="mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 disabled:opacity-60"
           >
             {busy && <LoadingSpinner size={14} className="text-slate-900" label="Working" />}
-            {busy ? "Building your test…" : "Build practice test"}
+            {busy ? "Adding your course…" : "Add to my past questions"}
           </button>
 
           {busy && (
