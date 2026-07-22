@@ -40,6 +40,10 @@ on the same machine.
   browser's native recording codec.
 - **Past questions + CBT** — browse a seeded catalog of courses and past
   exam questions, practice in a timed CBT-style flow, get scored instantly.
+  Or upload your own past-paper PDF: the local model extracts every
+  question, works out the answers, and turns it into a playable CBT under
+  "Your uploads" — fully offline. Answers are AI-generated, so they're a
+  study aid, not a marking scheme.
 - **Question of the day** — a daily practice question with streak tracking.
 - **Bookmarks** — save subunits, notes, or past questions for later,
   fully offline.
@@ -74,6 +78,14 @@ unclear.
 timed practice session. Answer questions CBT-style, get scored at the end,
 and on review, ask the model to explain any question, why the correct
 answer is right and where you went wrong.
+
+**Upload your own past paper:** On Past Questions, tap "Upload a past
+paper", give it a name, and pick a text-based PDF. The local model reads
+the whole paper, extracts each multiple-choice question, and works out the
+answers, then it appears as a playable CBT under "Your uploads". This runs
+entirely on your machine and can take a few minutes for a long paper (the
+progress bar shows each stage). The AI-chosen answers can be wrong, so
+treat them as a study aid.
 
 **Chat:** Open Chat from the sidebar (desktop) or the floating button
 (mobile) for a free conversation with no setup, ask anything, on any

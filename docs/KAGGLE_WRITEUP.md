@@ -4,7 +4,7 @@
 
 ## What was built
 
-ABUsites Companion is an offline-first study companion for Nigerian university students, built around a locally-hosted Gemma 4 model instead of a cloud API. It's meant for studying day to day, not just cramming before an exam. Describe a topic and get a syllabus with a tutor you can talk to by text or voice. Paste or photograph your own notes and have them broken down, explained segment by segment, and turned into a quiz whenever you're ready. Work through real past exam questions in a timed CBT-style practice mode, or just open a free chat and ask the model anything, no setup required. A daily question and streak tracking keep the habit going, and anything worth revisiting can be bookmarked. All of it runs against the same local model, on the student's own machine.
+ABUsites Companion is an offline-first study companion for Nigerian university students, built around a locally-hosted Gemma 4 model instead of a cloud API. It's meant for studying day to day, not just cramming before an exam. Describe a topic and get a syllabus with a tutor you can talk to by text or voice. Paste or photograph your own notes and have them broken down, explained segment by segment, and turned into a quiz whenever you're ready. Work through real past exam questions in a timed CBT-style practice mode, or upload your own past-paper PDF and have the model extract every question, answer them, and turn the whole thing into a playable practice test, all offline. Or just open a free chat and ask the model anything, no setup required. A daily question and streak tracking keep the habit going, and anything worth revisiting can be bookmarked. All of it runs against the same local model, on the student's own machine.
 
 ## Why it was built
 
