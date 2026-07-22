@@ -324,17 +324,22 @@ export default function StudyIntakeForm() {
 
   if (hydrating) {
     return (
-      <div className="card-deep rounded-2xl p-6 text-white/70">
-        <p className="flex items-center gap-3 text-sm">
-          <LoadingSpinner size={18} label="Loading" />
-          Loading your saved syllabi...
-        </p>
+      <div className="card-deep card-deep-glow mx-auto w-full max-w-3xl rounded-2xl p-6 text-white">
+        <h1 className="text-2xl font-semibold">Study mode</h1>
+        <div className="card-deep mt-6 rounded-2xl p-6 text-white/70">
+          <p className="flex items-center gap-3 text-sm">
+            <LoadingSpinner size={18} label="Loading" />
+            Loading your saved syllabi...
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <>
+    <div className="card-deep card-deep-glow mx-auto w-full max-w-3xl rounded-2xl p-6 text-white">
+      <h1 className="text-2xl font-semibold">Study mode</h1>
+      <div className="mt-6">
       {submitting ? (
         <FullPageLoader
           message={`Generating full syllabus for "${topic.trim()}"`}
@@ -581,6 +586,7 @@ export default function StudyIntakeForm() {
           </div>
         ) : null}
       </form>
-    </>
+      </div>
+    </div>
   );
 }
