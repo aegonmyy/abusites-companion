@@ -18,11 +18,15 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 
-/** Hard cap on extracted text handed to the model — a 200-page textbook
- * PDF must not blow the 4096-token num_ctx budget (or take minutes to
- * summarize on the target CPU). Short input, same as short output, is a
- * deliberate product decision. */
-const MAX_EXTRACTED_CHARS = 6000;
+/** Default char cap on extracted text — a 200-page textbook PDF must not
+ * blow the 4096-token num_ctx budget (or take minutes to summarize on the
+ * target CPU). This is the Notes default: short input, same as short
+ * output, a deliberate product decision there. The past-paper-to-CBT
+ * pipeline passes a much larger cap instead, because it chunks the text
+ * itself across many model calls (a full exam has to be read whole, not
+ * truncated to the first few questions) — see extractPdfText's maxChars
+ * param. */
+const DEFAULT_MAX_EXTRACTED_CHARS = 6000;
 
 const standardFontDataUrl =
   pathToFileURL(path.join(process.cwd(), "node_modules/pdfjs-dist/standard_fonts") + path.sep).href;
@@ -33,7 +37,10 @@ export type PdfExtractResult = {
   truncated: boolean;
 };
 
-export async function extractPdfText(buffer: Buffer): Promise<PdfExtractResult> {
+export async function extractPdfText(
+  buffer: Buffer,
+  maxChars: number = DEFAULT_MAX_EXTRACTED_CHARS,
+): Promise<PdfExtractResult> {
   const data = new Uint8Array(buffer);
   const doc = await getDocument({
     data,
@@ -48,18 +55,21 @@ export async function extractPdfText(buffer: Buffer): Promise<PdfExtractResult> 
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
     text += content.items.map((item) => ("str" in item ? item.str : "")).join(" ") + "\n";
-    if (text.length >= MAX_EXTRACTED_CHARS) break;
+    if (text.length >= maxChars) break;
   }
 
-  const truncated = text.length > MAX_EXTRACTED_CHARS;
+  const truncated = text.length > maxChars;
   return {
-    text: truncated ? text.slice(0, MAX_EXTRACTED_CHARS) : text.trim(),
+    text: truncated ? text.slice(0, maxChars) : text.trim(),
     pageCount: doc.numPages,
     truncated,
   };
 }
 
 /** Convenience wrapper for tests/scripts that only have a file path. */
-export async function extractPdfTextFromFile(filePath: string): Promise<PdfExtractResult> {
-  return extractPdfText(readFileSync(filePath));
+export async function extractPdfTextFromFile(
+  filePath: string,
+  maxChars?: number,
+): Promise<PdfExtractResult> {
+  return extractPdfText(readFileSync(filePath), maxChars);
 }
