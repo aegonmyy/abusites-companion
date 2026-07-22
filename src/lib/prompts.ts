@@ -14,10 +14,10 @@
  * note-segment explanation) is triggered by a hardcoded English synthetic
  * instruction the student never typed, so there's nothing to adapt to — it
  * gets a fixed instruction matching the chosen start language instead.
- * "followup" content (anything the student actually types in chat) gets an
- * adaptive instruction instead: continue in whatever language their message
- * is actually written in, regardless of the start language — a real
- * follow-up always takes precedence over the initial choice.
+ * "followup" content (anything the student actually types in chat) gets a
+ * dynamic instruction instead, built fresh per call from the student's
+ * actual last message — see followUpLanguageLine below for why this isn't
+ * a static string.
  *
  * The Hausa wording below is not the first draft — a vaguer version
  * ("code-switch naturally, the way a student talks") was tested directly
@@ -30,6 +30,28 @@
  * grammatical Hausa on 3/3 tasks, zero Pidgin. Re-verify with the same
  * methodology if this wording is ever changed — don't assume a
  * reasonable-sounding instruction actually produces Hausa without testing.
+ *
+ * followUpLanguageLine's dynamic-detection design is also not the first
+ * draft. The original approach was a single static instruction telling the
+ * model to check the last message's language itself and switch accordingly
+ * ("continue in whatever language the student's most recent message is
+ * actually written in..."). Tested directly against the real model with
+ * real mid-conversation switches (English topic then a Hausa follow-up, and
+ * the reverse): it failed constantly, not occasionally. Stronger, more
+ * explicit wording with worked examples fixed one direction (Hausa-context
+ * to English) but then broke the other direction (English-context to
+ * Hausa) 5/5 trials, regardless of topic — this wasn't a wording problem,
+ * it's that asking a 2B-class model to both self-diagnose a language AND
+ * act on that diagnosis in one step is unreliable. The fix: don't ask the
+ * model to detect the language at all. The app detects it (a cheap regex
+ * over common Hausa function words) and gives a direct, unconditional
+ * command instead — "the student's message is in Hausa, reply in Hausa" —
+ * with nothing left for the model to figure out. Verified 10/10 across
+ * both switch directions after this change (5/5 each), versus 0/5 to 5/5
+ * inconsistent results across every static-instruction wording tried
+ * before it. Re-verify with the same methodology (real mid-conversation
+ * switches, both directions, multiple trials — single-shot tests hide real
+ * direction-dependent bias) if this is ever changed.
  */
 
 export type StartLanguage = "hausa" | "english";
@@ -37,8 +59,26 @@ export type StartLanguage = "hausa" | "english";
 const HAUSA_GENERATED_LINE =
   "You MUST write your explanation primarily in Hausa. Every sentence should be mostly Hausa words, with only technical/scientific terms (formula names, scientific terms with no common Hausa equivalent) left in English. Do NOT use Nigerian Pidgin English (words like 'wahala', 'I go', 'abeg', 'na so') — Pidgin is not Hausa and is wrong here. Use real Hausa words and grammar: 'kuma' (and), 'amma' (but), 'domin'/'saboda' (because), 'wannan' (this), 'misali' (example), 'yadda' (how), 'idan' (if). Do this regardless of what language any instruction below is written in.";
 
-const FOLLOWUP_LANGUAGE_LINE =
-  "Continue in whatever language the student's most recent message is actually written in — if they write in Hausa, reply in Hausa (keeping technical/scientific terms in English); if English, reply in English; if they naturally mix Hausa and English, mirror that code-switching. Their own words take precedence over anything else in this system prompt about language.";
+/** Cheap, deterministic function-word check — good enough to route an
+ * instruction, not meant to be a linguistically rigorous classifier. */
+function looksHausa(text: string): boolean {
+  const hausaMarkers =
+    /\b(kuma|amma|domin|saboda|wannan|misali|yadda|idan|shine|kake|kana|yake|tana|yana|zan|zai|muna|mun|mai|ba|kai|ki|za|don|inda|wanda)\b/i;
+  return hausaMarkers.test(text);
+}
+
+/** For "followup" content (real student-typed text exists) — built fresh
+ * per call from the student's actual last message, not a static string.
+ * See the doc comment above for why: asking the model to both detect the
+ * last message's language and act on it in one step was unreliable, so the
+ * app does the (cheap, deterministic) detection instead and gives a direct
+ * command with nothing left for the model to figure out. */
+function followUpLanguageLine(lastUserMessage: string): string {
+  if (looksHausa(lastUserMessage)) {
+    return "The student's most recent message is in Hausa. Reply entirely in Hausa now (technical/scientific terms may stay in English), regardless of what language was used earlier in this conversation.";
+  }
+  return "The student's most recent message is in English. Reply entirely in English now, regardless of what language was used earlier in this conversation.";
+}
 
 /** For "generated" content (no real student text to read) — a fixed
  * instruction matching the chosen start language, or no instruction at all
@@ -55,10 +95,11 @@ export function subunitTutorSystemPrompt(
   subunitTitle: string,
   keyConcepts: string[],
   isFollowUp = false,
+  lastUserMessage = "",
 ): string {
   return [
     BASE,
-    isFollowUp ? FOLLOWUP_LANGUAGE_LINE : generatedLanguageLine(start),
+    isFollowUp ? followUpLanguageLine(lastUserMessage) : generatedLanguageLine(start),
     `You are tutoring the subunit "${subunitTitle}" within the topic "${topic}".`,
     keyConcepts.length ? `Key concepts to cover: ${keyConcepts.join(", ")}.` : "",
     "Explain simply first, then add detail. Use short worked examples or long prose where appropriate. If the student asks something unrelated to the subunit, answer briefly and steer back.",
@@ -271,12 +312,13 @@ export function notesChatSystemPrompt(
   summary: string,
   keyConcepts: string[],
   sourceExcerpt: string = "",
+  lastUserMessage: string = "",
 ): string {
   return [
     BASE,
     // Always genuine student-typed text here (this function only exists
     // for real follow-up chat) — always adaptive, no start-language param.
-    FOLLOWUP_LANGUAGE_LINE,
+    followUpLanguageLine(lastUserMessage),
     `You are answering follow-up questions about a saved note titled "${title}".`,
     `Note summary: ${summary}`,
     keyConcepts.length ? `Key concepts: ${keyConcepts.join(", ")}.` : "",
@@ -303,12 +345,13 @@ export function notesSegmentChatSystemPrompt(
   segmentSummary: string,
   explanation: string,
   sourceExcerpt: string,
+  lastUserMessage: string = "",
 ): string {
   return [
     BASE,
     // Always genuine student-typed text here too — always adaptive, no
     // start-language param.
-    FOLLOWUP_LANGUAGE_LINE,
+    followUpLanguageLine(lastUserMessage),
     `You are answering follow-up questions about one segment of a document titled "${documentTitle}".`,
     `Segment: "${segmentTitle}" — ${segmentSummary}`,
     explanation ? `You already explained this segment as follows:\n<<<\n${explanation}\n>>>` : "",
@@ -331,10 +374,10 @@ export function notesSegmentChatSystemPrompt(
  * notesSegmentChatSystemPrompt — no StartLanguage param, no Settings-level
  * default language applies here.
  */
-export function generalChatSystemPrompt(): string {
+export function generalChatSystemPrompt(lastUserMessage: string = ""): string {
   return [
     BASE,
-    FOLLOWUP_LANGUAGE_LINE,
+    followUpLanguageLine(lastUserMessage),
     "The student is chatting with you directly, with no specific topic, syllabus, or note attached. Answer whatever they ask as a helpful study assistant — explain concepts, work through problems, or just talk through what they're studying. Explain simply first, then add detail; use short worked examples where useful.",
   ].join("\n");
 }

@@ -249,7 +249,7 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     setStreaming(true);
 
     const sourceExcerpt = (note.rawText ?? "").trim().slice(0, MAX_SOURCE_EXCERPT_CHARS);
-    const system = notesChatSystemPrompt(note.title, noteContextSummary(note), note.keyConcepts, sourceExcerpt);
+    const system = notesChatSystemPrompt(note.title, noteContextSummary(note), note.keyConcepts, sourceExcerpt, userMsg.content);
 
     try {
       const res = await fetch("/api/llm", {
@@ -271,8 +271,11 @@ export default function NoteDetailPage({ params }: { params: Promise<{ id: strin
     setChat((prev) => [...prev, { role: "user", content: "🎤 (voice message)" }, { role: "assistant", content: "" }]);
     setStreaming(true);
 
+    // No transcribed text exists yet to detect language from — best-effort
+    // fallback to the last real typed message in this chat, if any.
+    const lastTyped = [...chat].reverse().find((m) => m.role === "user")?.content ?? "";
     const sourceExcerpt = (note.rawText ?? "").trim().slice(0, MAX_SOURCE_EXCERPT_CHARS);
-    const system = notesChatSystemPrompt(note.title, noteContextSummary(note), note.keyConcepts, sourceExcerpt);
+    const system = notesChatSystemPrompt(note.title, noteContextSummary(note), note.keyConcepts, sourceExcerpt, lastTyped);
 
     try {
       const res = await fetch("/api/llm", {

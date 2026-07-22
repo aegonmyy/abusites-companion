@@ -80,7 +80,7 @@ export default function ChatPage() {
       const res = await fetch("/api/llm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ routeTag: "chat", system: generalChatSystemPrompt(), messages: nextChat }),
+        body: JSON.stringify({ routeTag: "chat", system: generalChatSystemPrompt(content), messages: nextChat }),
       });
       if (!res.ok || !res.body) throw new Error("Local model call failed.");
       await streamAssistantReply(res);
@@ -97,11 +97,16 @@ export default function ChatPage() {
     setChat((prev) => [...prev, { role: "user", content: "🎤 (voice message)" }, { role: "assistant", content: "" }]);
     setStreaming(true);
 
+    // No transcribed text exists yet to detect language from (that happens
+    // inside this same model call) — best-effort fallback to the last real
+    // typed message, if any, otherwise defaults to English.
+    const lastTyped = [...history].reverse().find((m) => m.role === "user")?.content ?? "";
+
     try {
       const res = await fetch("/api/llm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ routeTag: "audio", system: generalChatSystemPrompt(), messages: history, audio }),
+        body: JSON.stringify({ routeTag: "audio", system: generalChatSystemPrompt(lastTyped), messages: history, audio }),
       });
       if (!res.ok || !res.body) throw new Error("Local model call failed.");
       await streamAssistantReply(res);

@@ -209,15 +209,17 @@ export default function SyllabusView({ raw, syllabusId, onExit, startLanguage }:
     // true only for a real message the student typed (handleSend) — false
     // for the synthetic auto-teach trigger (handleStart), which has no real
     // text to adapt to. See prompts.ts's generatedLanguageLine/
-    // FOLLOWUP_LANGUAGE_LINE split for why this distinction matters.
+    // followUpLanguageLine split for why this distinction matters.
     isFollowUp = false,
   ) => {
+    const lastUserMessage = isFollowUp ? (history[history.length - 1]?.content ?? "") : "";
     const system = subunitTutorSystemPrompt(
       startLanguage,
       syllabus?.topic ?? "",
       subunitTitle,
       keyConcepts,
       isFollowUp,
+      lastUserMessage,
     );
     return fetch("/api/llm", {
       method: "POST",

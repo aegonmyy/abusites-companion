@@ -180,7 +180,7 @@ export default function SegmentsView({
     await generateExplanation(segment, depth);
   }
 
-  function chatSystemFor(segment: Segment): string {
+  function chatSystemFor(segment: Segment, lastUserMessage: string = ""): string {
     const sourceExcerpt = (sourceText ?? "").trim().slice(0, MAX_SOURCE_EXCERPT_CHARS);
     return notesSegmentChatSystemPrompt(
       documentTitle,
@@ -188,6 +188,7 @@ export default function SegmentsView({
       segment.summary,
       explanations[segment.segment_id] ?? "",
       sourceExcerpt,
+      lastUserMessage,
     );
   }
 
@@ -231,7 +232,7 @@ export default function SegmentsView({
       const res = await fetch("/api/llm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ routeTag: "chat", system: chatSystemFor(segment), messages: nextHistory }),
+        body: JSON.stringify({ routeTag: "chat", system: chatSystemFor(segment, content), messages: nextHistory }),
       });
       if (!res.ok || !res.body) throw new Error("Local model call failed.");
       await streamChatReply(segmentId, res);
@@ -246,6 +247,9 @@ export default function SegmentsView({
     const segmentId = segment.segment_id;
     if (chatStreamingId) return;
     const history = chats[segmentId] ?? [];
+    // No transcribed text exists yet to detect language from — best-effort
+    // fallback to the last real typed message in this segment's chat.
+    const lastTyped = [...history].reverse().find((m) => m.role === "user")?.content ?? "";
     setChats((prev) => ({
       ...prev,
       [segmentId]: [...history, { role: "user", content: "🎤 (voice message)" }, { role: "assistant", content: "" }],
@@ -255,7 +259,7 @@ export default function SegmentsView({
       const res = await fetch("/api/llm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ routeTag: "audio", system: chatSystemFor(segment), messages: history, audio }),
+        body: JSON.stringify({ routeTag: "audio", system: chatSystemFor(segment, lastTyped), messages: history, audio }),
       });
       if (!res.ok || !res.body) throw new Error("Local model call failed.");
       await streamChatReply(segmentId, res);
