@@ -128,6 +128,11 @@ whatever language you actually type in a follow-up, even mid-conversation.
   `num_predict` budget for the actual reply. This applies to both model
   sources, not just local.
 
+For a deeper technical walkthrough, how prompts are designed, how the
+language-switching detection works, the JSON repair layer, the schema's
+reasoning, the offline-guarantee audit, and Windows-specific setup
+gotchas, see [`docs/`](docs/README.md).
+
 ## Model source: local vs. cloud
 
 This app supports two ways to run the model, switchable in Settings, no
