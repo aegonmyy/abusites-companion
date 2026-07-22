@@ -21,6 +21,7 @@ type LocalCourseDetail = {
     optionB: string | null;
     optionC: string | null;
     optionD: string | null;
+    optionE: string | null;
     correctIndex: number | null;
     explanation: string | null;
   }[];
@@ -59,7 +60,7 @@ export default function CbtPage({
             id: q.id,
             year: q.year,
             question_text: q.questionText ?? q.title,
-            options: [q.optionA, q.optionB, q.optionC, q.optionD].filter(
+            options: [q.optionA, q.optionB, q.optionC, q.optionD, q.optionE].filter(
               (o): o is string => o != null && o !== "",
             ),
             answer: q.correctIndex,

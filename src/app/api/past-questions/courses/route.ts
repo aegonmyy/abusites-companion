@@ -22,6 +22,9 @@ export async function GET() {
         code: c.code,
         title: c.title,
         pastQuestionCount: c._count.pastQuestions,
+        // Lets the client list student PDF uploads in their own section,
+        // separate from the seeded catalog. See the PDF-to-CBT pipeline.
+        isCustom: c.isCustom,
       })),
   );
 }
