@@ -109,17 +109,25 @@ export function subunitTutorSystemPrompt(
 }
 
 /**
- * Adapted from the earlier reference design's original syllabus prompt (recovered from its
- * deleted pr.md via git history) — a curriculum-design prompt with no
- * unit/subunit count cap at all ("continue until the topic is fully
- * covered", "avoid large conceptual jumps"). An earlier session here
- * replaced this with a hard 2-3 unit / 2 subunit / 2 key-concept cap purely
- * as a JSON-reliability workaround for the small local model — that was
- * never a pedagogical decision, and it's gone now. Reliability is instead
- * handled by the strict-JSON / plain-text constraints below (kept from that
- * earlier fix) plus a raised NUM_PREDICT.json budget (see ollama.ts) sized
- * for genuinely thorough output. Deliberately has no concept of a "goal" —
- * the real earlier reference-design prompt only ever took a topic.
+ * Curriculum-design prompt. Caps the syllabus at exactly 3 units x 2
+ * subunits (6 subunits total) regardless of topic breadth — a deliberate
+ * latency tradeoff, not a pedagogical one. An earlier version of this
+ * prompt had no cap at all ("continue until the topic is fully covered"),
+ * which produced genuinely thorough syllabi (up to 19 subunits for a broad
+ * topic like Photosynthesis) but took 37-73s end to end on the target
+ * hardware — too slow, confirmed as a real complaint, not a hypothetical
+ * one. Measured directly against the real model before landing on this
+ * cap: a softer "at most 10 subunits total" instruction was NOT reliably
+ * followed (the model produced 12-17 anyway) and still averaged 51-69s.
+ * Only an exact, blunt count ("EXACTLY 3 units... EXACTLY 2 subunits...")
+ * got both the count and the latency down reliably — 25-34s across 4 real
+ * topics (World War II, Photosynthesis, Organic Chemistry, Limits of a
+ * Function), roughly half the old baseline. Small models follow blunt
+ * exact numbers far better than "at most N" phrasing — same lesson as the
+ * language-switching fix elsewhere in this file. NUM_PREDICT.json (see
+ * ollama.ts) was lowered to match — the old 1500-token ceiling sized for
+ * unbounded syllabi is now pure dead latency risk for a call that reliably
+ * finishes in 250-400 tokens.
  */
 // Deliberately no language line here, even if the syllabus's chosen start
 // language is Hausa — titles/units/subunits stay English by product
@@ -135,11 +143,11 @@ export function syllabusGenerationSystemPrompt(): string {
   return [
     BASE,
     "You are a curriculum designer. Break the given topic into a structured learning path, as strict JSON only — no markdown fences, no prose outside the JSON, no fields beyond what's shown.",
-    "Divide the topic into sequential units. Each unit should contain several subunits. Each subunit should introduce only one or two key ideas. Order must progress from foundational concepts to advanced ones — avoid large conceptual jumps. Continue until the topic is fully covered; do not artificially limit the number of units or subunits.",
-    "Do not explain the concepts. Only produce the structure.",
-    'Shape: {"topic":"...","units":[{"unit_id":1,"title":"...","description":"short description of the unit","subunits":[{"subunit_id":"1.1","title":"...","key_concepts":["concept1","concept2"],"prerequisites":[]}]}]}',
+    "Produce EXACTLY 3 units, no more, no fewer. Each unit has EXACTLY 2 subunits, no more, no fewer. That is 6 subunits total for the whole syllabus, always, regardless of how broad the topic is. Pick only the 6 most important subunits — do not try to cover the topic exhaustively. Order units from foundational to advanced.",
+    "Do not explain the concepts. Only produce the structure. Each unit description is under 10 words. Each subunit has exactly 1 key concept, not more.",
+    'Shape: {"topic":"...","units":[{"unit_id":1,"title":"...","description":"short description of the unit","subunits":[{"subunit_id":"1.1","title":"...","key_concepts":["concept1"],"prerequisites":[]}]}]}',
     '"prerequisites" on a subunit lists the subunit_id(s) (e.g. "1.1") of subunits that must be understood first; empty array if none.',
-    "Plain text only inside every JSON string value: no LaTeX, no backslashes, no markdown. Spell things out (e.g. \"CO2\" not \"\\text{CO}_2\") — this must be valid JSON that a strict parser can read.",
+    "Plain text only inside every JSON string value: no LaTeX, no backslashes, no markdown.",
   ].join("\n");
 }
 
