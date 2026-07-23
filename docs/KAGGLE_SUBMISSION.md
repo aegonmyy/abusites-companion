@@ -15,9 +15,10 @@ Runs on `gemma4:e2b`, entirely local via Ollama, with an opt-in Google AI Studio
 
 ## 🎥 The Prototype
 
-[Insert demo video link]
+Demo video: https://youtu.be/T0aZSoMK1go
 Code: github.com/aegonmyy/abusites-companion
 Full writeup: github.com/aegonmyy/abusites-companion/blob/main/docs/KAGGLE_WRITEUP.md
+Technical docs: github.com/aegonmyy/abusites-companion/blob/main/docs/README.md
 
 ## 🧗 Challenges we ran into
 

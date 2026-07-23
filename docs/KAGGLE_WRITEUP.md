@@ -41,3 +41,7 @@ Every choice here traces back to the same constraint: students, not infrastructu
 ## How it addresses the problem
 
 The Local Languages & Literacy track asks for tools that meet people in the language and conditions they actually live in, not the ones a cloud API assumes. ABUsites Companion does that on both fronts at once: it works with no connection because the model never leaves the device, and it teaches in Hausa when that's genuinely more comfortable than English, adapting to whichever language a student is actually using, mid-conversation, not just at setup. Neither piece is a demo feature bolted onto an English-only, cloud-only app. Both are load-bearing, tested against the real model, and used every day the app is open, not just at exam time.
+
+## Further reading
+
+This writeup covers the story; the reasoning behind individual technical decisions, prompt design, the data model, offline verification, is written up in full at [`docs/`](https://github.com/aegonmyy/abusites-companion/blob/main/docs/README.md) in the repo.
