@@ -174,6 +174,21 @@ holds it.
 
 ## Installation
 
+**System requirements (Local mode):**
+
+| | Minimum | Ideal |
+|---|---|---|
+| RAM | ~10GB free | 16GB+ |
+| Disk | ~10GB free | — |
+| CPU | Any (no GPU needed) | — |
+
+These are engineering estimates based on the model's size on disk (`gemma4:e2b`
+is 7.16GB) and headroom for the OS and the app itself, not a number measured
+on the actual low-spec target hardware yet. If your machine is below this,
+or you'd rather not find out the hard way, use **Cloud mode** instead (see
+below), it skips the download and the RAM requirement entirely, at the cost
+of needing a network connection and a free API key.
+
 The fastest way, on a machine with nothing set up yet: one command installs
 git and Node if they're missing, clones the repo, and walks you through the
 rest.
