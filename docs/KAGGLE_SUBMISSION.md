@@ -16,6 +16,7 @@ Runs on `gemma4:e2b`, entirely local via Ollama, with an opt-in Google AI Studio
 ## 🎥 The Prototype
 
 Demo video: https://youtu.be/T0aZSoMK1go
+Live demo: https://abusites.ameenme.dev (running on my own personal VPS, not managed cloud infra, fitting since the whole point of this app is that it runs on ordinary hardware someone actually owns)
 Code: github.com/aegonmyy/abusites-companion
 Full writeup: github.com/aegonmyy/abusites-companion/blob/main/docs/KAGGLE_WRITEUP.md
 Technical docs: github.com/aegonmyy/abusites-companion/blob/main/docs/README.md
